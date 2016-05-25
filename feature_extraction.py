@@ -19,7 +19,7 @@ import nibabel as nib
 import numpy
 from nilearn.image import resample_img
 
-from pybraincompare.mr.transformation import make_resampled_transformation_vector
+from pybraincompare.mr.transformation import make_resampled_transformation_vector,make_resampled_transformation
 
 
 # Download statmaps. thresholded/unthreslhoded -> download_statmaps.py
@@ -27,95 +27,10 @@ from pybraincompare.mr.transformation import make_resampled_transformation_vecto
 
 # Feature Vector Creation. We need to create feature vectors that represent the statmaps as better as possible without
 # too much information lost. We can start with the method above.
-# def get_standard_mask(software):
-#     '''Returns reference mask from FSL or FREESURFER'''
-#     if software == "FSL":
-#         reference = os.path.join(os.environ['FSLDIR'],'data', 'standard', 'MNI152_T1_2mm_brain_mask.nii.gz')
-#     elif software == "FREESURFER":
-#         reference = os.path.join(os.environ['FREESURFER_HOME'],'subjects', 'fsaverage', 'mri', 'brainmask.mgz')
-#     return reference
-#
-# # Get pybraincompare standard brain mask (from FSL) if user doesn't have software
-# def get_standard_mask(voxdim=2):
-#     mr_directory = get_data_directory()
-#     mask = "%s/MNI152_T1_%smm_brain_mask.nii.gz" %(mr_directory,voxdim)
-#     if not os.path.exists(mask):
-#         mask = nib.load("%s/MNI152_T1_2mm_brain_mask.nii.gz" %(mr_directory))
-#         mask = resample_img(mask,target_affine=numpy.diag([voxdim,voxdim,voxdim]),interpolation="nearest")
-#         return mask
-#     else:
-#         return nib.load(mask)
-#
-# def get_nii_obj(images):
-#     '''Returns nibabel nifti objects from a list of filenames and/or nibabel objects'''
-#     images_nii = []
-#     if isinstance(images,str):
-#         images = [images]
-#     if isinstance(images,nib.nifti1.Nifti1Image):
-#         return [images]
-#     for i in range(0,len(images)):
-#         image = images[i]
-#         if not isinstance(image,nib.nifti1.Nifti1Image):
-#             image = nib.load(image)
-#         images_nii.append(image)
-#     return images_nii
-#
-#     mr = get_images_df(file_paths=files.path,mask=standard_mask)
-#
-#
-# def get_images_df(file_paths,mask,dtype="f",smoothing_fwhm=None,ensure_finite=True):
-#     return pandas.DataFrame(apply_mask(file_paths, mask, dtype, smoothing_fwhm,ensure_finite))
-
-# def make_resampled_transformation_vector(nii_obj,resample_dim=[4,4,4],standard_mask=True):
-#
-#     resamp_nii = make_resampled_transformation(nii_obj,resample_dim,standard_mask)
-#     if standard_mask:
-#         standard = get_standard_mask(voxdim=resample_dim[0])
-#         return resamp_nii.get_data()[standard.get_data()!=0]
-#     else:
-#         return resamp_nii.get_data().flatten()
-
-
-# Make a resampled image transformation
-# def make_resampled_transformation(nii_obj, resample_dim=[4, 4, 4], standard_mask=True):
-#     nii_obj = get_nii_obj(nii_obj)[0]
-#     # To set 0s to nan, we need to have float64 data type
-#     true_zeros = numpy.zeros(nii_obj.shape)  # default data_type is float64
-#     true_zeros[:] = nii_obj.get_data()
-#     true_zeros[true_zeros == 0] = numpy.nan
-#     # Resample image to 4mm voxel, nans are preserved
-#     true_zeros = nib.nifti1.Nifti1Image(true_zeros, affine=nii_obj.get_affine())
-#     # Standard brain masking
-#     if standard_mask == True:
-#         standard = get_standard_mask(voxdim=resample_dim[0])
-#         true_zeros = resample_img(true_zeros, target_affine=standard.get_affine(), target_shape=standard.shape)
-#         # Mask the image
-#         masked_true_zeros = numpy.zeros(true_zeros.shape)
-#         masked_true_zeros[standard.get_data() != 0] = true_zeros.get_data()[standard.get_data() != 0]
-#         true_zeros = nib.nifti1.Nifti1Image(masked_true_zeros, affine=true_zeros.get_affine())
-#     # or just resample
-#     else:
-#         if (resample_dim != numpy.diag(true_zeros.get_affine())[0:3]).all():
-#             true_zeros = resample_img(true_zeros, target_affine=numpy.diag(resample_dim))
-#
-#     return true_zeros
-
-
-def save_resampled_transformation_single(file, resample_dim=[4, 4, 4]):
-    from six import BytesIO
-    import numpy as np
-    nii_obj = nib.load(file)   # standard_mask=True is default
-    image_vector = make_resampled_transformation_vector(nii_obj,resample_dim)
-    f = BytesIO()
-    np.save(f, image_vector)
-    f.seek(0)
-    return
-    # content_file = ContentFile(f.read())
-    # img.reduced_representation.save("transform_%smm_%s.npy" %(resample_dim[0],img.pk), content_file)
 
 
 
-#     # Calculate pearson correlation from pickle files with brain masked vectors of image values
+# Calculate pearson correlation from pickle files with brain masked vectors of image values
 # def save_voxelwise_pearson_similarity_reduced_representation(pk1, pk2):
 #     from neurovault.apps.statmaps.models import Similarity, Comparison
 #     import numpy as np
@@ -212,16 +127,75 @@ def save_resampled_transformation_single(file, resample_dim=[4, 4, 4]):
 #             return image1.pk, image2.pk, pearson_score
 #         else:
 #             raise Exception("You are trying to compare an image with itself!")
+from pybraincompare.mr.datasets import get_standard_mask
+from pybraincompare.compare.mrutils import get_nii_obj
+from nilearn.image import resample_img
+import nibabel as nib
+import numpy
+import os
+
+
+def make_resampled_transformation(nii_obj, resample_dim=[4, 4, 4]):
+    nii_obj = get_nii_obj(nii_obj)[0]
+    true_zeros = numpy.zeros(nii_obj.shape)  # default data_type is float64
+    true_zeros[:] = nii_obj.get_data()
+    true_zeros = nib.nifti1.Nifti1Image(true_zeros, affine=nii_obj.get_affine())
+    standard = get_standard_mask(voxdim=resample_dim[0])
+    true_zeros = resample_img(true_zeros, target_affine=standard.get_affine(),target_shape=standard.shape)
+    masked_true_zeros = numpy.zeros(true_zeros.shape)
+    masked_true_zeros[standard.get_data() != 0] = true_zeros.get_data()[standard.get_data() != 0]
+    true_zeros = nib.nifti1.Nifti1Image(masked_true_zeros, affine=true_zeros.get_affine())
+    return true_zeros
+def make_resampled_transformation_vector(nii_obj,resample_dim=[4,4,4]):
+    resamp_nii = make_resampled_transformation(nii_obj,resample_dim)
+    standard = get_standard_mask(voxdim=resample_dim[0])
+    return resamp_nii.get_data()[standard.get_data()]
+
+
 
 import os
+import nibabel as nib
+import numpy as np
+from nilearn.image import resample_img
+from pybraincompare.mr.transformation import make_resampled_transformation_vector, make_resampled_transformation
+
+from sklearn.decomposition import PCA
+
+
+def save_resampled_transformation_single(file, resample_dim=[4, 4, 4]):
+    nii_obj = nib.load(file)   # standard_mask=True is default
+    resamp_nii = make_resampled_transformation(nii_obj, resample_dim)
+    image_data = resamp_nii.get_data()
+    image_vector = make_resampled_transformation_vector(nii_obj, resample_dim)
+
+    pca = PCA(n_components=2)
+    pca.fit(image_vector)
+    a = pca.score(image_vector)
+
+    print image_data.shape
+    # do I have to create a 116380*4 array to do the PCA?
+    # 116380 = image_data.shape[0] * image_data.shape[1]*image_data.shape[2]
+    # 4 = (x,y,z,v) where v is the value
+    size = image_data.shape
+    mesh = np.array(np.meshgrid(np.arange(size[0]),np.arange(size[1]),np.arange(size[2]))).T.reshape(-1,3)
+    image_spatial_data = [mesh, image_vector]
+
+
+
+
+    # np.save(f, image_vector)
+    return
+
+
 indir = '/ann-benchmarks/data/thres/'
 
 for root, dirs, filenames in os.walk(indir):
     print root
-    for f in filenames:
-        print 'computing subject ' + f
-        save_resampled_transformation_single(indir + f)
-        break
+    for file in filenames:
+        print 'computing subject ' + file
+        file = indir + file
+        save_resampled_transformation_single(file)
+        # break
 
 
 
