@@ -127,31 +127,6 @@ from pybraincompare.mr.transformation import make_resampled_transformation_vecto
 #             return image1.pk, image2.pk, pearson_score
 #         else:
 #             raise Exception("You are trying to compare an image with itself!")
-from pybraincompare.mr.datasets import get_standard_mask
-from pybraincompare.compare.mrutils import get_nii_obj
-from nilearn.image import resample_img
-import nibabel as nib
-import numpy
-import os
-
-
-def make_resampled_transformation(nii_obj, resample_dim=[4, 4, 4]):
-    nii_obj = get_nii_obj(nii_obj)[0]
-    true_zeros = numpy.zeros(nii_obj.shape)  # default data_type is float64
-    true_zeros[:] = nii_obj.get_data()
-    true_zeros = nib.nifti1.Nifti1Image(true_zeros, affine=nii_obj.get_affine())
-    standard = get_standard_mask(voxdim=resample_dim[0])
-    true_zeros = resample_img(true_zeros, target_affine=standard.get_affine(),target_shape=standard.shape)
-    masked_true_zeros = numpy.zeros(true_zeros.shape)
-    masked_true_zeros[standard.get_data() != 0] = true_zeros.get_data()[standard.get_data() != 0]
-    true_zeros = nib.nifti1.Nifti1Image(masked_true_zeros, affine=true_zeros.get_affine())
-    return true_zeros
-def make_resampled_transformation_vector(nii_obj,resample_dim=[4,4,4]):
-    resamp_nii = make_resampled_transformation(nii_obj,resample_dim)
-    standard = get_standard_mask(voxdim=resample_dim[0])
-    return resamp_nii.get_data()[standard.get_data()]
-
-
 
 import os
 import nibabel as nib
@@ -166,11 +141,10 @@ def save_resampled_transformation_single(file, resample_dim=[4, 4, 4]):
     nii_obj = nib.load(file)   # standard_mask=True is default
     resamp_nii = make_resampled_transformation(nii_obj, resample_dim)
     image_data = resamp_nii.get_data()
-    image_vector = make_resampled_transformation_vector(nii_obj, resample_dim)
+    image_vector = image_data.flatten()
+    image_vector = np.nan_to_num(image_vector)
+    image_vector = image_vector.reshape(image_vector.shape[0], 1)
 
-    pca = PCA(n_components=2)
-    pca.fit(image_vector)
-    a = pca.score(image_vector)
 
     print image_data.shape
     # do I have to create a 116380*4 array to do the PCA?
@@ -178,16 +152,18 @@ def save_resampled_transformation_single(file, resample_dim=[4, 4, 4]):
     # 4 = (x,y,z,v) where v is the value
     size = image_data.shape
     mesh = np.array(np.meshgrid(np.arange(size[0]),np.arange(size[1]),np.arange(size[2]))).T.reshape(-1,3)
-    image_spatial_data = [mesh, image_vector]
+    image_spatial_data = np.concatenate((mesh, image_vector),axis=1)
 
-
+    pca = PCA(n_components=3)
+    pca.fit_transform(image_spatial_data)
+    a = pca.score(image_vector)
 
 
     # np.save(f, image_vector)
     return
 
 
-indir = '/ann-benchmarks/data/thres/'
+indir = os.getcwd() + '/ann-benchmarks/data/thres/'
 
 for root, dirs, filenames in os.walk(indir):
     print root
@@ -195,7 +171,7 @@ for root, dirs, filenames in os.walk(indir):
         print 'computing subject ' + file
         file = indir + file
         save_resampled_transformation_single(file)
-        # break
+        break
 
 
 
