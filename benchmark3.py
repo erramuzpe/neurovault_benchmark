@@ -3,7 +3,7 @@ from neurovault.apps.statmaps.tasks import save_voxelwise_pearson_similarity
 from neurovault.apps.statmaps.tests.utils import clearDB
 from neurovault.apps.statmaps.models import Comparison, Similarity, User, Collection, Image
 from neurovault.apps.statmaps.utils import get_images_to_compare_with, is_search_compatible
-from neurovault.apps.statmaps.tests.utils import  save_statmap_form
+from neurovault.apps.statmaps.tests.utils import save_statmap_form
 from neurovault.apps.statmaps.tasks import get_images_by_ordered_id, save_resampled_transformation_single
 
 
