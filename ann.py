@@ -79,30 +79,32 @@ class Command(BaseCommand):
         a = lshf.fit(features)
 
         # query
-        n = 3 # number of neughbours
+        n = 3 # number of neighbours
         feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
         results = lshf.kneighbors(feature, return_distance=False, n_neighbors=n)[0]
         print results
 
-#
-# class BallTree(BaseANN):
-#     def __init__(self, metric, leaf_size=20):
-#         self.name = 'BallTree(leaf_size=%d)' % leaf_size
-#         self._leaf_size = leaf_size
-#         self._metric = metric
-#
-#     def fit(self, X):
-#         import sklearn.neighbors
-#         if self._metric == 'angular':
-#             X = sklearn.preprocessing.normalize(X, axis=1, norm='l2')
-#         self._tree = sklearn.neighbors.BallTree(X, leaf_size=self._leaf_size)
-#
-#     def query(self, v, n):
-#         if self._metric == 'angular':
-#             v = sklearn.preprocessing.normalize(v, axis=1, norm='l2')[0]
-#         dist, ind = self._tree.query(v, k=n)
-#         return ind[0]
-#
+
+        # BallTree
+        metric ='angular'
+        leaf_size=20
+        name = 'BallTree(leaf_size=%d)' % leaf_size
+
+        # fit
+        import sklearn.neighbors
+        features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
+        tree = sklearn.neighbors.BallTree(features, leaf_size=leaf_size)
+
+        # query
+        n = 3  # number of neighbours
+        feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
+        results = lshf.kneighbors(feature, return_distance=False, n_neighbors=n)[0]
+        print results
+
+        feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
+        dist, ind = tree.query(feature, k=n)
+        print ind
+
 #
 # class KDTree(BaseANN):
 #     def __init__(self, metric, leaf_size=20):
