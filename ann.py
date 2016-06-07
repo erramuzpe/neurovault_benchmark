@@ -25,6 +25,7 @@ def createFeatures(subjects=None):
             features[:, i] = np.load(image.reduced_representation.file)
             i += 1
             if i == subjects:
+                features[np.isnan(features)] = 0
                 np.save('/code/neurovault/apps/statmaps/tests/features.npy', features)
                 return features
 
@@ -35,8 +36,12 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         clearDB()
-        features = createFeatures().T #TODO: pass args to this function
+        features = createFeatures(5).T #TODO: pass args to this function
 
+
+        # TODO: build specific build, fit and query functions for each algo
+
+        ## Nearpy
         n_bits = 10
         hash_counts = 5
         metric = "euclidean"
@@ -61,27 +66,24 @@ class Command(BaseCommand):
         #results are the N-nearest neighbours! [vector, data_idx, distance]. (for now, distance is NaN)
 
 
+        ## LSHF
+        metric = 'angular'
+        n_estimators=10
+        n_candidates=50
+        name = 'LSHF(n_est=%d, n_cand=%d)' % (n_estimators, n_candidates)
 
+        # fit
+        import sklearn.neighbors
+        lshf = sklearn.neighbors.LSHForest(n_estimators=n_estimators, n_candidates=n_candidates)
+        features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
+        a = lshf.fit(features)
 
-# class LSHF(BaseANN):
-#     def __init__(self, metric, n_estimators=10, n_candidates=50):
-#         self.name = 'LSHF(n_est=%d, n_cand=%d)' % (n_estimators, n_candidates)
-#         self._metric = metric
-#         self._n_estimators = n_estimators
-#         self._n_candidates = n_candidates
-#
-#     def fit(self, X):
-#         import sklearn.neighbors
-#         self._lshf = sklearn.neighbors.LSHForest(n_estimators=self._n_estimators, n_candidates=self._n_candidates)
-#         if self._metric == 'angular':
-#             X = sklearn.preprocessing.normalize(X, axis=1, norm='l2')
-#         self._lshf.fit(X)
-#
-#     def query(self, v, n):
-#         if self._metric == 'angular':
-#             v = sklearn.preprocessing.normalize(v, axis=1, norm='l2')[0]
-#         return self._lshf.kneighbors(v, return_distance=False, n_neighbors=n)[0]
-#
+        # query
+        n = 3 # number of neughbours
+        feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
+        results = lshf.kneighbors(feature, return_distance=False, n_neighbors=n)[0]
+        print results
+
 #
 # class BallTree(BaseANN):
 #     def __init__(self, metric, leaf_size=20):
