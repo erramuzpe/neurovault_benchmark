@@ -9,6 +9,7 @@ import numpy as np
 
 
 def createFeatures(subjects=None):
+    clearDB()
     if os.path.isfile('/code/neurovault/apps/statmaps/tests/features.npy') and subjects == None:
         return np.load('/code/neurovault/apps/statmaps/tests/features.npy')
     else:
@@ -16,6 +17,7 @@ def createFeatures(subjects=None):
         i = 1
         features = np.empty([28549, subjects])
         for file in os.listdir('/code/neurovault/apps/statmaps/tests/bench/unthres/'):
+            # print 'Adding subject ' + file
             randomCollection = Collection(name='random' + file, owner=u1, DOI='10.3389/fninf.2015.00008' + str(i))
             randomCollection.save()
             image = save_statmap_form(image_path=os.path.join('/code/neurovault/apps/statmaps/tests/bench/unthres/', file),
@@ -35,8 +37,7 @@ class Command(BaseCommand):
     help = 'bench'
 
     def handle(self, *args, **options):
-        clearDB()
-        features = createFeatures(5).T #TODO: pass args to this function
+        features = createFeatures().T #TODO: pass args to this function
 
 
         # TODO: build specific build, fit and query functions for each algo
@@ -143,3 +144,44 @@ class Command(BaseCommand):
         feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
         print flann.nn_index(feature, n)[0][0]  # returns 2 arrays. [[idx]] and [[distance]]
 
+
+
+
+# class CosineDistance(Distance):
+#     """  Uses 1-cos(angle(x,y)) as distance measure. """
+#
+#     def distance(self, x, y):
+#         """
+#         Computes distance measure between vectors x and y. Returns float.
+#         """
+#
+#         if scipy.sparse.issparse(x):
+#             x = x.toarray().ravel()
+#             y = y.toarray().ravel()
+#         return 1.0 - numpy.dot(x, y)
+#
+#
+# class EuclideanDistance(Distance):
+#     """ Euclidean distance """
+#
+#     def distance(self, x, y):
+#         """
+#         Computes distance measure between vectors x and y. Returns float.
+#         """
+#         if scipy.sparse.issparse(x):
+#             return numpy.linalg.norm((x - y).toarray().ravel())
+#         else:
+#             return numpy.linalg.norm(x - y)
+#
+#
+# class ManhattanDistance(Distance):
+#     """ Manhattan distance """
+#
+#     def distance(self, x, y):
+#         """
+#         Computes the Manhattan distance between vectors x and y. Returns float.
+#         """
+#         if scipy.sparse.issparse(x):
+#             return numpy.sum(numpy.absolute((x-y).toarray().ravel()))
+#         else:
+#             return numpy.sum(numpy.absolute(x-y))
