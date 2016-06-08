@@ -4,9 +4,36 @@ from neurovault.apps.statmaps.models import Comparison, Similarity, User, Collec
 from neurovault.apps.statmaps.tests.utils import save_statmap_form
 from neurovault.apps.statmaps.tasks import save_resampled_transformation_single
 
-import os
+import os, scipy
 import numpy as np
 
+
+def CosineDistance(x, y):
+    """
+    Computes distance measure between vectors x and y. Returns float.
+    """
+    if scipy.sparse.issparse(x):
+        x = x.toarray().ravel()
+        y = y.toarray().ravel()
+    return 1.0 - np.dot(x, y)
+
+def EuclideanDistance(x, y):
+    """
+    Computes distance measure between vectors x and y. Returns float.
+    """
+    if scipy.sparse.issparse(x):
+        return np.linalg.norm((x - y).toarray().ravel())
+    else:
+        return np.linalg.norm(x - y)
+
+def ManhattanDistance(x, y):
+    """
+    Computes the Manhattan distance between vectors x and y. Returns float.
+    """
+    if scipy.sparse.issparse(x):
+        return np.sum(np.absolute((x-y).toarray().ravel()))
+    else:
+        return np.sum(np.absolute(x-y))
 
 def createFeatures(subjects=None):
     clearDB()
@@ -14,9 +41,8 @@ def createFeatures(subjects=None):
         return np.load('/code/neurovault/apps/statmaps/tests/features.npy')
     else:
         u1 = User.objects.create(username='neurovault3')
-        i = 1
         features = np.empty([28549, subjects])
-        for file in os.listdir('/code/neurovault/apps/statmaps/tests/bench/unthres/'):
+        for i, file in enumerate(os.listdir('/code/neurovault/apps/statmaps/tests/bench/unthres/')):
             # print 'Adding subject ' + file
             randomCollection = Collection(name='random' + file, owner=u1, DOI='10.3389/fninf.2015.00008' + str(i))
             randomCollection.save()
@@ -25,7 +51,6 @@ def createFeatures(subjects=None):
             if not image.reduced_representation or not os.path.exists(image.reduced_representation.path):
                 image = save_resampled_transformation_single(image.pk)
             features[:, i] = np.load(image.reduced_representation.file)
-            i += 1
             if i == subjects:
                 features[np.isnan(features)] = 0
                 np.save('/code/neurovault/apps/statmaps/tests/features.npy', features)
@@ -64,124 +89,92 @@ class Command(BaseCommand):
         #results are the N-nearest neighbours! [vector, data_idx, distance]. (for now, distance is NaN)
 
 
-        ## LSHF
-        metric = 'angular'
-        n_estimators=10
-        n_candidates=50
-        name = 'LSHF(n_est=%d, n_cand=%d)' % (n_estimators, n_candidates)
-        # fit
-        import sklearn.neighbors
-        lshf = sklearn.neighbors.LSHForest(n_estimators=n_estimators, n_candidates=n_candidates)
-        features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
-        a = lshf.fit(features)
-        # query
-        n = 3  # number of neighbours
-        feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
-        results = lshf.kneighbors(feature, return_distance=False, n_neighbors=n)[0]
-        print results
-
-
-        ## BallTree
-        metric ='angular'
-        leaf_size=20
-        name = 'BallTree(leaf_size=%d)' % leaf_size
-        # fit
-        import sklearn.neighbors
-        features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
-        tree = sklearn.neighbors.BallTree(features, leaf_size=leaf_size)
-        # query
-        n = 3  # number of neighbours
-        feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
-        dist, ind = tree.query(feature, k=n) # gives an array with dicstances and another one with idx
-        print ind
-
-
-        ## KDTree(BaseANN):
-        metric = 'angular'
-        leaf_size = 20
-        name = 'KDTree(leaf_size=%d)' % leaf_size
-
-        # fit
-        import sklearn.neighbors
-        features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
-        tree = sklearn.neighbors.KDTree(features, leaf_size=leaf_size)
-
-        # query
-        n = 3  # number of neighbours
-        feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
-        dist, ind = tree.query(feature, k=n)
-        print ind
-
-
-        ## PANNS
-        metric = 'euclidean'
-        n_trees = 10
-        n_candidates = 50
-        name = 'PANNS(n_trees=%d, n_cand=%d)' % (n_trees, n_candidates)
-        # fit
-        import panns
-        panns = panns.PannsIndex(features.shape[1], metric=metric)
-        for feature in features:
-            panns.add_vector(feature)
-        panns.build(n_trees)
-        # query
-        n = 3  # number of neighbours
-        results = panns.query(features[3], n)
-        print zip(*results)[0]  # returns list of duples (idx, distance)
-
-        ## FLANN
-        metric = 'angular'
-        target_precision =  0.98
-        name = 'FLANN(target_precision=%f)' % target_precision
-        # fit
-        import pyflann
-        flann = pyflann.FLANN(target_precision=target_precision, algorithm='autotuned',
-                                    log_level='info')
-        features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
-        flann.build_index(features)
-        # query
-        n = 3  # number of neighbours
-        feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
-        print flann.nn_index(feature, n)[0][0]  # returns 2 arrays. [[idx]] and [[distance]]
+        # testing
+        for i, x in enumerate(features[0:4]):
+            for j, y in enumerate(features[0:4]):
+                print i, j
+                print 'Cosine', CosineDistance(y,x)
+                print 'Euclidean', EuclideanDistance(y,x)
+                print 'Manhattan', ManhattanDistance(y,x)
 
 
 
-
-# class CosineDistance(Distance):
-#     """  Uses 1-cos(angle(x,y)) as distance measure. """
-#
-#     def distance(self, x, y):
-#         """
-#         Computes distance measure between vectors x and y. Returns float.
-#         """
-#
-#         if scipy.sparse.issparse(x):
-#             x = x.toarray().ravel()
-#             y = y.toarray().ravel()
-#         return 1.0 - numpy.dot(x, y)
-#
-#
-# class EuclideanDistance(Distance):
-#     """ Euclidean distance """
-#
-#     def distance(self, x, y):
-#         """
-#         Computes distance measure between vectors x and y. Returns float.
-#         """
-#         if scipy.sparse.issparse(x):
-#             return numpy.linalg.norm((x - y).toarray().ravel())
-#         else:
-#             return numpy.linalg.norm(x - y)
-#
-#
-# class ManhattanDistance(Distance):
-#     """ Manhattan distance """
-#
-#     def distance(self, x, y):
-#         """
-#         Computes the Manhattan distance between vectors x and y. Returns float.
-#         """
-#         if scipy.sparse.issparse(x):
-#             return numpy.sum(numpy.absolute((x-y).toarray().ravel()))
-#         else:
-#             return numpy.sum(numpy.absolute(x-y))
+        # ## LSHF
+        # metric = 'angular'
+        # n_estimators=10
+        # n_candidates=50
+        # name = 'LSHF(n_est=%d, n_cand=%d)' % (n_estimators, n_candidates)
+        # # fit
+        # import sklearn.neighbors
+        # lshf = sklearn.neighbors.LSHForest(n_estimators=n_estimators, n_candidates=n_candidates)
+        # features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
+        # a = lshf.fit(features)
+        # # query
+        # n = 3  # number of neighbours
+        # feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
+        # results = lshf.kneighbors(feature, return_distance=False, n_neighbors=n)[0]
+        # print results
+        #
+        #
+        # ## BallTree
+        # metric ='angular'
+        # leaf_size=20
+        # name = 'BallTree(leaf_size=%d)' % leaf_size
+        # # fit
+        # import sklearn.neighbors
+        # features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
+        # tree = sklearn.neighbors.BallTree(features, leaf_size=leaf_size)
+        # # query
+        # n = 3  # number of neighbours
+        # feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
+        # dist, ind = tree.query(feature, k=n) # gives an array with dicstances and another one with idx
+        # print ind
+        #
+        #
+        # ## KDTree(BaseANN):
+        # metric = 'angular'
+        # leaf_size = 20
+        # name = 'KDTree(leaf_size=%d)' % leaf_size
+        #
+        # # fit
+        # import sklearn.neighbors
+        # features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
+        # tree = sklearn.neighbors.KDTree(features, leaf_size=leaf_size)
+        #
+        # # query
+        # n = 3  # number of neighbours
+        # feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
+        # dist, ind = tree.query(feature, k=n)
+        # print ind
+        #
+        #
+        # ## PANNS
+        # metric = 'euclidean'
+        # n_trees = 10
+        # n_candidates = 50
+        # name = 'PANNS(n_trees=%d, n_cand=%d)' % (n_trees, n_candidates)
+        # # fit
+        # import panns
+        # panns = panns.PannsIndex(features.shape[1], metric=metric)
+        # for feature in features:
+        #     panns.add_vector(feature)
+        # panns.build(n_trees)
+        # # query
+        # n = 3  # number of neighbours
+        # results = panns.query(features[3], n)
+        # print zip(*results)[0]  # returns list of duples (idx, distance)
+        #
+        # ## FLANN
+        # metric = 'angular'
+        # target_precision =  0.98
+        # name = 'FLANN(target_precision=%f)' % target_precision
+        # # fit
+        # import pyflann
+        # flann = pyflann.FLANN(target_precision=target_precision, algorithm='autotuned',
+        #                             log_level='info')
+        # features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
+        # flann.build_index(features)
+        # # query
+        # n = 3  # number of neighbours
+        # feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
+        # print flann.nn_index(feature, n)[0][0]  # returns 2 arrays. [[idx]] and [[distance]]
