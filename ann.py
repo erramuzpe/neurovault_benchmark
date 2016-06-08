@@ -51,7 +51,7 @@ def createFeatures(subjects=None):
             if not image.reduced_representation or not os.path.exists(image.reduced_representation.path):
                 image = save_resampled_transformation_single(image.pk)
             features[:, i] = np.load(image.reduced_representation.file)
-            if i == subjects:
+            if i == subjects-1:
                 features[np.isnan(features)] = 0
                 np.save('/code/neurovault/apps/statmaps/tests/features.npy', features)
                 return features
@@ -84,20 +84,23 @@ class Command(BaseCommand):
         for i, x in enumerate(features):
             nearpy_engine.store_vector(x.tolist(), i)
         #query
-        results = nearpy_engine.neighbours(features[3])
+        results = nearpy_engine.neighbours(features[1])
         print results
         #results are the N-nearest neighbours! [vector, data_idx, distance]. (for now, distance is NaN)
 
 
         # testing
-        for i, x in enumerate(features[0:4]):
-            for j, y in enumerate(features[0:4]):
+        for i, x in enumerate(features[0:5]):
+            for j, y in enumerate(features[0:5]):
                 print i, j
                 print 'Cosine', CosineDistance(y,x)
                 print 'Euclidean', EuclideanDistance(y,x)
                 print 'Manhattan', ManhattanDistance(y,x)
-
-
+        # seems like euclidean distance is a good aproximator of similarity. statmaps must be in the same range.
+        for i, file in enumerate(os.listdir('/code/neurovault/apps/statmaps/tests/bench/unthres/')):
+            print 'subject ' + file
+            if i == 5:
+                break
 
         # ## LSHF
         # metric = 'angular'
