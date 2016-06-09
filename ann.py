@@ -4,7 +4,7 @@ from neurovault.apps.statmaps.models import Comparison, Similarity, User, Collec
 from neurovault.apps.statmaps.tests.utils import save_statmap_form
 from neurovault.apps.statmaps.tasks import save_resampled_transformation_single
 
-import os, scipy
+import os, scipy, pickle
 import numpy as np
 
 
@@ -38,10 +38,12 @@ def ManhattanDistance(x, y):
 def createFeatures(subjects=None):
     clearDB()
     if os.path.isfile('/code/neurovault/apps/statmaps/tests/features.npy') and subjects == None:
-        return np.load('/code/neurovault/apps/statmaps/tests/features.npy')
+        return np.load('/code/neurovault/apps/statmaps/tests/features.npy').T, \
+               pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat.p',"rb" ))
     else:
         u1 = User.objects.create(username='neurovault3')
         features = np.empty([28549, subjects])
+        dict_feat = {}
         for i, file in enumerate(os.listdir('/code/neurovault/apps/statmaps/tests/bench/unthres/')):
             # print 'Adding subject ' + file
             randomCollection = Collection(name='random' + file, owner=u1, DOI='10.3389/fninf.2015.00008' + str(i))
@@ -51,10 +53,12 @@ def createFeatures(subjects=None):
             if not image.reduced_representation or not os.path.exists(image.reduced_representation.path):
                 image = save_resampled_transformation_single(image.pk)
             features[:, i] = np.load(image.reduced_representation.file)
+            dict_feat[i] = int(file.split(".")[0])
             if i == subjects-1:
                 features[np.isnan(features)] = 0
                 np.save('/code/neurovault/apps/statmaps/tests/features.npy', features)
-                return features
+                pickle.dump(dict_feat,open('/code/neurovault/apps/statmaps/tests/dict_feat.p',"wb" ))
+                return features.T, dict_feat
 
 
 class Command(BaseCommand):
@@ -62,11 +66,9 @@ class Command(BaseCommand):
     help = 'bench'
 
     def handle(self, *args, **options):
-        features = createFeatures().T #TODO: pass args to this function
-
+        features, dict_feat = createFeatures() #TODO: pass args to this function
 
         # TODO: build specific build, fit and query functions for each algo
-
         ## Nearpy
         n_bits = 10
         hash_counts = 5
@@ -82,25 +84,36 @@ class Command(BaseCommand):
 
         nearpy_engine = nearpy.Engine(features.shape[1], lshashes=hashes)
         for i, x in enumerate(features):
-            nearpy_engine.store_vector(x.tolist(), i)
+            nearpy_engine.store_vector(x.tolist(), dict_feat[i])
+
         #query
-        results = nearpy_engine.neighbours(features[1])
-        print results
-        #results are the N-nearest neighbours! [vector, data_idx, distance]. (for now, distance is NaN)
+        for i in range(features.shape[0]):
+            results = nearpy_engine.neighbours(features[i])
+            print 'queried', dict_feat[i], 'results', zip(*results)[1]
 
 
-        # testing
-        for i, x in enumerate(features[0:5]):
-            for j, y in enumerate(features[0:5]):
-                print i, j
-                print 'Cosine', CosineDistance(y,x)
-                print 'Euclidean', EuclideanDistance(y,x)
-                print 'Manhattan', ManhattanDistance(y,x)
-        # seems like euclidean distance is a good aproximator of similarity. statmaps must be in the same range.
-        for i, file in enumerate(os.listdir('/code/neurovault/apps/statmaps/tests/bench/unthres/')):
-            print 'subject ' + file
-            if i == 5:
-                break
+#results are the N-nearest neighbours! [vector, data_idx, distance]. (for now, distance is NaN)
+
+
+# testing
+for i, x in enumerate(features[0:5]):
+    for j, y in enumerate(features[0:5]):
+        print i, j
+        print 'Cosine', CosineDistance(y,x)
+        print 'Euclidean', EuclideanDistance(y,x)
+        print 'Manhattan', ManhattanDistance(y,x)
+# seems like euclidean distance is a good aproximator of similarity. statmaps must be in the same range.
+for i, file in enumerate(os.listdir('/code/neurovault/apps/statmaps/tests/bench/unthres/')):
+    print 'subject ' + file
+    if i == 5:
+        break
+
+
+
+
+
+
+
 
         # ## LSHF
         # metric = 'angular'
