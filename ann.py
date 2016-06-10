@@ -44,11 +44,12 @@ def createFeatures(subjects=None):
         u1 = User.objects.create(username='neurovault3')
         features = np.empty([28549, subjects])
         dict_feat = {}
-        for i, file in enumerate(os.listdir('/code/neurovault/apps/statmaps/tests/bench/unthres/')):
+        for i, file in enumerate(os.listdir('/code/neurovault/apps/statmaps/tests/bench/images/')):
             # print 'Adding subject ' + file
+            print i
             randomCollection = Collection(name='random' + file, owner=u1, DOI='10.3389/fninf.2015.00008' + str(i))
             randomCollection.save()
-            image = save_statmap_form(image_path=os.path.join('/code/neurovault/apps/statmaps/tests/bench/unthres/', file),
+            image = save_statmap_form(image_path=os.path.join('/code/neurovault/apps/statmaps/tests/bench/images/', file),
                                       collection=randomCollection, image_name=file, ignore_file_warning=True)
             if not image.reduced_representation or not os.path.exists(image.reduced_representation.path):
                 image = save_resampled_transformation_single(image.pk)
@@ -66,7 +67,7 @@ class Command(BaseCommand):
     help = 'bench'
 
     def handle(self, *args, **options):
-        features, dict_feat = createFeatures() #TODO: pass args to this function
+        features, dict_feat = createFeatures(940) #TODO: pass args to this function
 
         # TODO: build specific build, fit and query functions for each algo
         ## Nearpy
@@ -108,6 +109,30 @@ for i, file in enumerate(os.listdir('/code/neurovault/apps/statmaps/tests/bench/
     if i == 5:
         break
 
+index_ann = np.zeros(features.shape[0])
+query_ann = np.zeros(features.shape[0])
+
+for i, x in enumerate(features):
+    t = Timer()
+    with t:
+        nearpy_engine.store_vector(x.tolist(), dict_feat[i])
+    index_ann[i] = t.interval
+
+np.save(os.path.join('/code/neurovault/apps/statmaps/tests', 'results_index_ann' , index_ann)
+
+# query
+import io
+for i in range(features.shape[0]):
+    t = Timer()
+    with t:
+        results = nearpy_engine.neighbours(features[i])
+    query_ann[i] = t.interval
+    with io.FileIO("/code/neurovault/apps/statmaps/tests/query_ann.txt", "a") as file:
+        print >> file, 'queried', dict_feat[i], 'results', zip(*results)[1]
+        file.close()
+        #print 'queried', dict_feat[i], 'results', zip(*results)[1]
+
+np.save(os.path.join('/code/neurovault/apps/statmaps/tests', 'results_query_ann'), query_ann)
 
 
 
@@ -115,7 +140,7 @@ for i, file in enumerate(os.listdir('/code/neurovault/apps/statmaps/tests/bench/
 
 
 
-        # ## LSHF
+            # ## LSHF
         # metric = 'angular'
         # n_estimators=10
         # n_candidates=50
