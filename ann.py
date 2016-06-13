@@ -112,7 +112,7 @@ class Command(BaseCommand):
 
 
 ## NEARPY TEST
-n_bits = 10
+n_bits = 5
 hash_counts = 2
 metric = "euclidean"
 name = 'NearPy(n_bits=%d, hash_counts=%d)' % (n_bits, hash_counts)
