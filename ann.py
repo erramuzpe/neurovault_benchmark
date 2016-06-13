@@ -110,46 +110,35 @@ class Command(BaseCommand):
 #         break
 
 
-#
-# ## NEARPY TEST
-# n_bits = 20
-# hash_counts = 10
-# metric = "euclidean"
-# name = 'NearPy(n_bits=%d, hash_counts=%d)' % (n_bits, hash_counts)
-# # fit
-# import nearpy, nearpy.hashes, nearpy.distances
-#
-# hashes = []
-# # doesn't seem like the NearPy code is using the metric??
-# for k in xrange(hash_counts):
-#     nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
-#     hashes.append(nearpy_rbp)
-#
-# nearpy_engine = nearpy.Engine(features.shape[1], lshashes=hashes)
-#
-#
-# index_ann = np.zeros(features.shape[0])
-# query_ann = np.zeros(features.shape[0])
-# for i, x in enumerate(features):
-#     t = Timer()
-#     with t:
-#         nearpy_engine.store_vector(x.tolist(), dict_feat[i])
-#     index_ann[i] = t.interval
-# np.save('/code/neurovault/apps/statmaps/tests/results_index_ann', index_ann)
-#
-# # query
-# import io
-# for i in range(features.shape[0]):
-#     t = Timer()
-#     with t:
-#         results = nearpy_engine.neighbours(features[i])
-#     query_ann[i] = t.interval
-#     with io.FileIO("/code/neurovault/apps/statmaps/tests/query_ann.txt", "a") as file:
-#         print >> file, 'queried', dict_feat[i], 'results', zip(*results)[1]
-#         file.close()
-#         #print 'queried', dict_feat[i], 'results', zip(*results)[1]
-# np.save('/code/neurovault/apps/statmaps/tests/results_query_ann', query_ann)
-#
+
+## NEARPY TEST
+n_bits = 10
+hash_counts = 2
+metric = "euclidean"
+name = 'NearPy(n_bits=%d, hash_counts=%d)' % (n_bits, hash_counts)
+# fit
+import nearpy, nearpy.hashes, nearpy.distances
+
+hashes = []
+# doesn't seem like the NearPy code is using the metric??
+for k in xrange(hash_counts):
+    nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
+    hashes.append(nearpy_rbp)
+
+filter_N = nearpy.filters.NearestFilter(100)
+
+nearpy_engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(), lshashes=hashes,vector_filters=[filter_N])
+
+
+for i, x in enumerate(features):
+    nearpy_engine.store_vector(x.tolist(), dict_feat[i])
+
+
+# query
+for i in range(features.shape[0]):
+    results = nearpy_engine.neighbours(features[i])
+    print 'queried', dict_feat[i], 'results', zip(*results)[1]
+
 
 
 
