@@ -141,86 +141,13 @@ for i in range(features.shape[0]):
 
 
 
+    def __init__(self, leaf_size, n_trees):
+        from rpforest import RPForest
+        self.name = 'RPForest(leaf_size=%d, n_trees=%d)' % (leaf_size, n_trees)
+        self._model = RPForest(leaf_size=leaf_size, no_trees=n_trees)
 
+    def fit(self, X):
+        self._model.fit(X)
 
-
-
-            # ## LSHF
-        # metric = 'angular'
-        # n_estimators=10
-        # n_candidates=50
-        # name = 'LSHF(n_est=%d, n_cand=%d)' % (n_estimators, n_candidates)
-        # # fit
-        # import sklearn.neighbors
-        # lshf = sklearn.neighbors.LSHForest(n_estimators=n_estimators, n_candidates=n_candidates)
-        # features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
-        # a = lshf.fit(features)
-        # # query
-        # n = 3  # number of neighbours
-        # feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
-        # results = lshf.kneighbors(feature, return_distance=False, n_neighbors=n)[0]
-        # print results
-        #
-        #
-        # ## BallTree
-        # metric ='angular'
-        # leaf_size=20
-        # name = 'BallTree(leaf_size=%d)' % leaf_size
-        # # fit
-        # import sklearn.neighbors
-        # features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
-        # tree = sklearn.neighbors.BallTree(features, leaf_size=leaf_size)
-        # # query
-        # n = 3  # number of neighbours
-        # feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
-        # dist, ind = tree.query(feature, k=n) # gives an array with dicstances and another one with idx
-        # print ind
-        #
-        #
-        # ## KDTree(BaseANN):
-        # metric = 'angular'
-        # leaf_size = 20
-        # name = 'KDTree(leaf_size=%d)' % leaf_size
-        #
-        # # fit
-        # import sklearn.neighbors
-        # features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
-        # tree = sklearn.neighbors.KDTree(features, leaf_size=leaf_size)
-        #
-        # # query
-        # n = 3  # number of neighbours
-        # feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
-        # dist, ind = tree.query(feature, k=n)
-        # print ind
-        #
-        #
-        # ## PANNS
-        # metric = 'euclidean'
-        # n_trees = 10
-        # n_candidates = 50
-        # name = 'PANNS(n_trees=%d, n_cand=%d)' % (n_trees, n_candidates)
-        # # fit
-        # import panns
-        # panns = panns.PannsIndex(features.shape[1], metric=metric)
-        # for feature in features:
-        #     panns.add_vector(feature)
-        # panns.build(n_trees)
-        # # query
-        # n = 3  # number of neighbours
-        # results = panns.query(features[3], n)
-        # print zip(*results)[0]  # returns list of duples (idx, distance)
-        #
-        # ## FLANN
-        # metric = 'angular'
-        # target_precision =  0.98
-        # name = 'FLANN(target_precision=%f)' % target_precision
-        # # fit
-        # import pyflann
-        # flann = pyflann.FLANN(target_precision=target_precision, algorithm='autotuned',
-        #                             log_level='info')
-        # features = sklearn.preprocessing.normalize(features, axis=1, norm='l2')
-        # flann.build_index(features)
-        # # query
-        # n = 3  # number of neighbours
-        # feature = sklearn.preprocessing.normalize(features[3], axis=1, norm='l2')[0]
-        # print flann.nn_index(feature, n)[0][0]  # returns 2 arrays. [[idx]] and [[distance]]
+    def query(self, v, n):
+return self._model.query(v, n)
