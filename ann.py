@@ -123,16 +123,27 @@ for i in range(features.shape[0]):
         results = nearpy_engine.neighbours(features[i])
     print 'queried', dict_feat[i], 'results', zip(*results)[1]
 
+
+
+
+
+
+
 # Create redis storage adapter
-redis_object = Redis(host='localhost', port=6379, db=0)
-redis_storage = RedisStorage(redis_object)
+import redis
+redis_object = redis.Redis(host='localhost', port=6379, db=0)
+redis_storage = nearpy.storage.RedisStorage(redis_object)
 
 # Get hash config from redis
 config = redis_storage.load_hash_configuration('MyHash')
 
 if config is None:
     # Config is not existing, create hash from scratch, with 10 projections
-    lshash = RandomBinaryProjections('MyHash', 10)
+    lshash = []
+    # doesn't seem like the NearPy code is using the metric??
+    for k in xrange(hash_counts):
+        nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
+        lshash.append(nearpy_rbp)
 else:
     # Config is existing, create hash with None parameters
     lshash = RandomBinaryProjections(None, None)
@@ -143,12 +154,21 @@ else:
 # This will set the dimension of the lshash only the first time, not when
 # using the configuration loaded from redis. Use redis storage to store
 # buckets.
-engine = Engine(100, lshashes=[lshash], storage=redis_storage)
+engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(),lshashes=lshash, storage=redis_storage, vector_filters=[nearpy.filters.NearestFilter(100)])
 
 # Do some stuff like indexing or querying with the engine...
+for i, x in enumerate(features):
+    nearpy_engine.store_vector(x.tolist(), dict_feat[i])
+
+for i in range(features.shape[0]):
+    results = nearpy_engine.neighbours(features[i])
+    print 'queried', dict_feat[i], 'results', zip(*results)[1]
 
 # Finally store hash configuration in redis for later use
 redis_storage.store_hash_configuration(lshash)
+
+
+
 
 
 
