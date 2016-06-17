@@ -131,7 +131,12 @@ for i in range(features.shape[0]):
 
 # Create redis storage adapter
 import redis
-redis_object = redis.Redis(host='localhost', port=6379, db=0)
+import nearpy, nearpy.hashes, nearpy.distances
+
+n_bits = 5
+hash_counts = 20
+
+redis_object = redis.Redis(host='redis', port=6379, db=0)
 redis_storage = nearpy.storage.RedisStorage(redis_object)
 
 # Get hash config from redis
@@ -158,10 +163,10 @@ engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDi
 
 # Do some stuff like indexing or querying with the engine...
 for i, x in enumerate(features):
-    nearpy_engine.store_vector(x.tolist(), dict_feat[i])
+    engine.store_vector(x.tolist(), dict_feat[i])
 
 for i in range(features.shape[0]):
-    results = nearpy_engine.neighbours(features[i])
+    results = engine.neighbours(features[i])
     print 'queried', dict_feat[i], 'results', zip(*results)[1]
 
 # Finally store hash configuration in redis for later use
