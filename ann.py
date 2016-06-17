@@ -150,10 +150,14 @@ if config is None:
         nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
         lshash.append(nearpy_rbp)
 else:
-    # Config is existing, create hash with None parameters
-    lshash = nearpy.hashes.RandomBinaryProjections(None, None)
-    # Apply configuration loaded from redis
-    lshash.apply_config(config)
+    lshash = []
+    for k in xrange(hash_counts):
+        config = redis_storage.load_hash_configuration('rbp_%d' % k)
+        # Config is existing, create hash with None parameters
+        # Apply configuration loaded from redis
+        lshash_aux = nearpy.hashes.RandomBinaryProjections(None, None)
+        lshash_aux.apply_config(config)
+        lshash.append(lshash_aux)
 
 # Create engine for feature space of 100 dimensions and use our hash.
 # This will set the dimension of the lshash only the first time, not when
@@ -162,7 +166,7 @@ else:
 engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(),lshashes=lshash, storage=redis_storage, vector_filters=[nearpy.filters.NearestFilter(100)])
 
 # Do some stuff like indexing or querying with the engine...
-for i, x in enumerate(features[:100,:]):
+for i, x in enumerate(features[:200,:]):
     t = Timer()
     with t:
         engine.store_vector(x.tolist(), dict_feat[i])
@@ -174,7 +178,8 @@ for i in range(10):
     print 'queried', dict_feat[i], 'results', zip(*results)[1]
 
 # Finally store hash configuration in redis for later use
-redis_storage.store_hash_configuration(lshash[0])
+for k in xrange(hash_counts):
+    redis_storage.store_hash_configuration(lshash[k])
 
 
 
