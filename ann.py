@@ -140,7 +140,7 @@ redis_object = redis.Redis(host='redis', port=6379, db=0)
 redis_storage = nearpy.storage.RedisStorage(redis_object)
 
 # Get hash config from redis
-config = redis_storage.load_hash_configuration('MyHash')
+config = redis_storage.load_hash_configuration('rbp_0')
 
 if config is None:
     # Config is not existing, create hash from scratch, with 10 projections
@@ -151,7 +151,7 @@ if config is None:
         lshash.append(nearpy_rbp)
 else:
     # Config is existing, create hash with None parameters
-    lshash = RandomBinaryProjections(None, None)
+    lshash = nearpy.hashes.RandomBinaryProjections(None, None)
     # Apply configuration loaded from redis
     lshash.apply_config(config)
 
@@ -174,7 +174,7 @@ for i in range(10):
     print 'queried', dict_feat[i], 'results', zip(*results)[1]
 
 # Finally store hash configuration in redis for later use
-redis_storage.store_hash_configuration(lshash)
+redis_storage.store_hash_configuration(lshash[0])
 
 
 
