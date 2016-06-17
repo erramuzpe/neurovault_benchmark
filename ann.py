@@ -162,8 +162,10 @@ else:
 engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(),lshashes=lshash, storage=redis_storage, vector_filters=[nearpy.filters.NearestFilter(100)])
 
 # Do some stuff like indexing or querying with the engine...
-for i, x in enumerate(features):
-    engine.store_vector(x.tolist(), dict_feat[i])
+for i, x in enumerate(features[:100,:]):
+    t = Timer()
+    with t:
+        engine.store_vector(x.tolist(), dict_feat[i])
 
 for i in range(features.shape[0]):
     results = engine.neighbours(features[i])
@@ -200,3 +202,29 @@ for i in range(features.shape[0]):
     with t:
         results = model.get_candidates(features[i])
     print 'queried', dict_feat[i], 'results', results
+
+
+
+
+import timeit
+class Timer:
+    def __init__(self, timer=None, disable_gc=False, verbose=True):
+        if timer is None:
+            timer = timeit.default_timer
+        self.timer = timer
+        self.disable_gc = disable_gc
+        self.verbose = verbose
+        self.start = self.end = self.interval = None
+    def __enter__(self):
+        if self.disable_gc:
+            self.gc_state = gc.isenabled()
+            gc.disable()
+        self.start = self.timer()
+        return self
+    def __exit__(self, *args):
+        self.end = self.timer()
+        if self.disable_gc and self.gc_state:
+            gc.enable()
+        self.interval = self.end - self.start
+        if self.verbose:
+            print('time taken: %f seconds' % self.interval)
