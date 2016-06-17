@@ -167,8 +167,10 @@ for i, x in enumerate(features[:100,:]):
     with t:
         engine.store_vector(x.tolist(), dict_feat[i])
 
-for i in range(features.shape[0]):
-    results = engine.neighbours(features[i])
+for i in range(10):
+    t = Timer()
+    with t:
+        results = engine.neighbours(features[i])
     print 'queried', dict_feat[i], 'results', zip(*results)[1]
 
 # Finally store hash configuration in redis for later use
