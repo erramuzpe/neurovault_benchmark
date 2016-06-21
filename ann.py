@@ -35,14 +35,15 @@ def ManhattanDistance(x, y):
     else:
         return np.sum(np.absolute(x-y))
 
-def createFeatures(subjects=None):
+
+def createFeatures(subjects=None, resample_dim=[4, 4, 4]):
     clearDB()
     if os.path.isfile('/code/neurovault/apps/statmaps/tests/features.npy') and subjects == None:
         return np.load('/code/neurovault/apps/statmaps/tests/features.npy').T, \
                pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat.p',"rb" ))
     else:
         u1 = User.objects.create(username='neurovault3')
-        features = np.empty([28549, subjects])
+        features = np.empty([450, subjects]) #4*4*4 = 28549 #16*16*16 = 450
         dict_feat = {}
         for i, file in enumerate(os.listdir('/code/neurovault/apps/statmaps/tests/bench/images/')):
             # print 'Adding subject ' + file
@@ -52,7 +53,7 @@ def createFeatures(subjects=None):
             image = save_statmap_form(image_path=os.path.join('/code/neurovault/apps/statmaps/tests/bench/images/', file),
                                       collection=randomCollection, image_name=file, ignore_file_warning=True)
             if not image.reduced_representation or not os.path.exists(image.reduced_representation.path):
-                image = save_resampled_transformation_single(image.pk)
+                image = save_resampled_transformation_single(image.pk, resample_dim)
             features[:, i] = np.load(image.reduced_representation.file)
             dict_feat[i] = int(file.split(".")[0])
             if i == subjects-1:
@@ -67,7 +68,7 @@ class Command(BaseCommand):
     help = 'bench'
 
     def handle(self, *args, **options):
-        features, dict_feat = createFeatures() #TODO: pass args to this function
+        features, dict_feat = createFeatures(940,resample_dim=[16,16,16]) #TODO: pass args to this function
 
         # TODO: build specific build, fit and query functions for each algo
         ## Nearpy
@@ -96,6 +97,24 @@ class Command(BaseCommand):
 #results are the N-nearest neighbours! [vector, data_idx, distance]. (for now, distance is NaN)
 
 
+
+
+
+
+
+
+
+from django.core.management.base import BaseCommand, CommandError
+from neurovault.apps.statmaps.tests.utils import clearDB
+from neurovault.apps.statmaps.models import Comparison, Similarity, User, Collection, Image
+from neurovault.apps.statmaps.tests.utils import save_statmap_form
+from neurovault.apps.statmaps.tasks import save_resampled_transformation_single
+
+import os, scipy, pickle
+import numpy as np
+
+features, dict_feat = np.load('/code/neurovault/apps/statmaps/tests/features_940_16_16_16.npy').T, \
+                      pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat.p', "rb"))
 import timeit
 ## NEARPY TEST
 n_bits = 5
@@ -109,8 +128,11 @@ hashes = []
 for k in xrange(hash_counts):
     nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
     hashes.append(nearpy_rbp)
+
 filter_N = nearpy.filters.NearestFilter(100)
-nearpy_engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(), lshashes=hashes,vector_filters=[filter_N])
+
+nearpy_engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(),
+                              lshashes=hashes,vector_filters=[filter_N])
 #indexing
 for i, x in enumerate(features):
     t = Timer()
@@ -122,6 +144,11 @@ for i in range(features.shape[0]):
     with t:
         results = nearpy_engine.neighbours(features[i])
     print 'queried', dict_feat[i], 'results', zip(*results)[1]
+
+
+
+
+
 
 
 
