@@ -134,9 +134,9 @@ filter_N = nearpy.filters.NearestFilter(100)
 nearpy_engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(),
                               lshashes=hashes,vector_filters=[filter_N])
 #indexing
-for i, x in enumerate(features):
-    t = Timer()
-    with t:
+t = Timer()
+with t:
+    for i, x in enumerate(features):
         nearpy_engine.store_vector(x.tolist(), dict_feat[i])
 # querying
 for i in range(features.shape[0]):
