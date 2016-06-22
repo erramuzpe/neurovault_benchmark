@@ -147,6 +147,70 @@ for i in range(features.shape[0]):
 
 
 
+#######
+# PCA #
+#######
+from sklearn.decomposition import PCA
+features, dict_feat = np.load('/code/neurovault/apps/statmaps/tests/features_940_4_4_4.npy'), \
+                      pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat.p', "rb"))
+#features must be n_samples*n_features =  940 * 28549
+number_of_samples = 500
+pca = PCA()
+pca.fit(features[:number_of_samples, :])
+print(pca.explained_variance_ratio_[:4])
+#a = pca.transform(features[501,:]).T
+
+
+n_bits = 5
+hash_counts = 20
+metric = "euclidean"
+name = 'NearPy(n_bits=%d, hash_counts=%d)' % (n_bits, hash_counts)
+# fiting
+import nearpy, nearpy.hashes, nearpy.distances
+hashes = []
+# doesn't seem like the NearPy code is using the metric??
+for k in xrange(hash_counts):
+    nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
+    hashes.append(nearpy_rbp)
+
+filter_N = nearpy.filters.NearestFilter(100)
+
+nearpy_engine = nearpy.Engine(number_of_samples, distance= nearpy.distances.EuclideanDistance(),
+                              lshashes=hashes,vector_filters=[filter_N])
+#indexing
+
+for i, x in enumerate(features):
+    t = Timer()
+    with t:
+        projection = pca.transform(features[i, :]).T
+        nearpy_engine.store_vector(projection.tolist(), dict_feat[i])
+# querying
+for i in range(features.shape[0]):
+    t = Timer()
+    with t:
+        results = nearpy_engine.neighbours(pca.transform(features[i, :]).T)
+    print 'queried', dict_feat[i], 'results', zip(*results)[1]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
