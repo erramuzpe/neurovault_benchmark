@@ -147,7 +147,7 @@ for i in range(features.shape[0]):
 
 
 #######
-# Similarity comp #
+# Accuracy metric #
 #######
 def dcg(r):
     """Score is discounted cumulative gain (dcg)"""
@@ -155,8 +155,6 @@ def dcg(r):
     if r.size:
         return r[0] + np.sum(r[1:] / np.log2(np.arange(2, r.size + 1)))
     return 0.
-
-
 
 
 
@@ -168,7 +166,7 @@ features, dict_feat = np.load('/code/neurovault/apps/statmaps/tests/features_940
                       pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat.p', "rb"))
 #features must be n_samples*n_features =  940 * 28549
 number_of_samples = 500
-pca = PCA() #PCA(n_components = 20) or whatever
+pca = PCA(n_components = 20) #PCA(n_components = 20) or whatever
 pca.fit(features[:number_of_samples, :])
 print(pca.explained_variance_ratio_[:4])
 #a = pca.transform(features[501,:]).T
