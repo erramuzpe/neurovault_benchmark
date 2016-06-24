@@ -173,6 +173,11 @@ print(pca.explained_variance_ratio_[:4])
 a=pca.transform(features[501,:])
 b=pca.inverse_transform(a)
 EuclideanDistance(b,features[501,:]) #and compare
+import matplotlib.pyplot as plt
+plt.scatter(pca.components_[0,:],pca.components_[1,:])
+plt.show()
+
+
 
 n_bits = 5
 hash_counts = 20
