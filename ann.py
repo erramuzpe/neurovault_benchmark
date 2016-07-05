@@ -38,13 +38,14 @@ def ManhattanDistance(x, y):
 
 def createFeatures(subjects=None, resample_dim=[4, 4, 4]):
     clearDB()
-    if os.path.isfile('/code/neurovault/apps/statmaps/tests/features.npy') and subjects == None:
-        return np.load('/code/neurovault/apps/statmaps/tests/features.npy').T, \
-               pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat.p',"rb" ))
+    if os.path.isfile('/code/neurovault/apps/statmaps/tests/features'+str(subjects)+str(resample_dim)+'.npy') and subjects == None:
+        return np.load('/code/neurovault/apps/statmaps/tests/features'+str(subjects)+str(resample_dim)+'.npy').T, \
+               pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat'+str(subjects)+str(resample_dim)+'.p',"rb" ))
     else:
-        u1 = User.objects.create(username='neurovault3')
-        features = np.empty([450, subjects]) #4*4*4 = 28549 #16*16*16 = 450
+        feature_dimension = get_feature_dimension(resample_dim)
+        features = np.empty([feature_dimension, subjects]) #4*4*4 = 28549 #16*16*16 = 450
         dict_feat = {}
+        u1 = User.objects.create(username='neurovault3')
         for i, file in enumerate(os.listdir('/code/neurovault/apps/statmaps/tests/bench/images/')):
             # print 'Adding subject ' + file
             print i
@@ -58,17 +59,38 @@ def createFeatures(subjects=None, resample_dim=[4, 4, 4]):
             dict_feat[i] = int(file.split(".")[0])
             if i == subjects-1:
                 features[np.isnan(features)] = 0
-                np.save('/code/neurovault/apps/statmaps/tests/features.npy', features)
-                pickle.dump(dict_feat,open('/code/neurovault/apps/statmaps/tests/dict_feat.p',"wb" ))
+                np.save('/code/neurovault/apps/statmaps/tests/features'+str(subjects)+str(resample_dim)+'.npy', features)
+                pickle.dump(dict_feat,open('/code/neurovault/apps/statmaps/tests/dict_feat'+str(subjects)+str(resample_dim)+'.p',"wb" ))
                 return features.T, dict_feat
 
+def get_feature_dimension(resample_dim):
+    u1 = User.objects.create(username='dummy'+str(resample_dim))
+    for file in os.listdir('/code/neurovault/apps/statmaps/tests/bench/images/'):
+        randomCollection = Collection(name='random' + file, owner=u1, DOI='10.3389/fninf.2015.00008' + file)
+        randomCollection.save()
+        image = save_statmap_form(image_path=os.path.join('/code/neurovault/apps/statmaps/tests/bench/images/', file),
+                                  collection=randomCollection, image_name=file, ignore_file_warning=True)
+        if not image.reduced_representation or not os.path.exists(image.reduced_representation.path):
+            image = save_resampled_transformation_single(image.pk, resample_dim)
+        feature = np.load(image.reduced_representation.file)
+        dimension = feature.shape[0]
+        clearDB()
+        break
+    return dimension
 
 class Command(BaseCommand):
     args = '<times_to_run>'
     help = 'bench'
 
     def handle(self, *args, **options):
-        features, dict_feat = createFeatures(940,resample_dim=[16,16,16]) #TODO: pass args to this function
+
+        resample_dim_pool = [[4,4,4],[6,6,6],[8,8,8],[10,10,10],[12,12,12],[14,14,14],[16,16,16]]
+        subjects = 940
+        n_bits_pool = [2, 4, 6, 8, 10]
+        hash_counts_pool = [2, 5, 10, 15, 20]
+
+        for resample_dim in resample_dim_pool:
+            features, dict_feat = createFeatures(subjects,resample_dim) #TODO: pass args to this function
 
         # TODO: build specific build, fit and query functions for each algo
         ## Nearpy
