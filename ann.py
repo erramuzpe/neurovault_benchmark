@@ -105,11 +105,6 @@ def get_neurovault_scores(subjects, dict_feat):
                     corr_values.pop(idx2)
 
             scores[value] = dict(zip(image_ids,corr_values)) # id : corr value
-            # to sort:
-            # sorted(dict1, key=dict1.get)
-            # or
-            # for w in sorted(d, key=d.get, reverse=True):
-            #       print w, d[w]
 
         pickle.dump(scores, open(
             '/code/neurovault/apps/statmaps/tests/dict_scores' + str(subjects) + '.p', "wb"))
@@ -172,6 +167,16 @@ class Command(BaseCommand):
 
                         # comparison of results with scores!!
                         # use of DCG()
+                        # results are sorted, sort scores
+
+                            # to sort:
+                            # sorted(dict1, key=dict1.get)
+                            # or
+                            # for w in sorted(d, key=d.get, reverse=True):
+                            #       print w, d[w]
+
+                        # 2 ways of sorting (corr or abs(corr))
+                        # I will start with abs(corr) since it is best for dcg calc
 
 
 
