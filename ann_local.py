@@ -119,13 +119,14 @@ class Command(BaseCommand):
 
             hashes = []
             for k in xrange(hash_counts):
-            nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
-            hashes.append(nearpy_rbp)
+                nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
+                hashes.append(nearpy_rbp)
+
             filter_N = nearpy.filters.NearestFilter(100)
 
             nearpy_engine = nearpy.Engine(features.shape[1], lshashes=hashes, distance=distance, vector_filters=[filter_N])
             for i, x in enumerate(features):
-            nearpy_engine.store_vector(x.tolist(), dict_feat[i])
+                nearpy_engine.store_vector(x.tolist(), dict_feat[i])
 
             # query
             query_score = np.zeros(features.shape[0])
