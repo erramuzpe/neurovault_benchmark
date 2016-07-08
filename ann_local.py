@@ -119,6 +119,61 @@ class Command(BaseCommand):
             scores = get_neurovault_scores(100, dict_feat)
 
 
+            hashes = []
+            for k in xrange(hash_counts):
+            nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
+            hashes.append(nearpy_rbp)
+            filter_N = nearpy.filters.NearestFilter(100)
+
+            nearpy_engine = nearpy.Engine(features.shape[1], lshashes=hashes, distance=distance, vector_filters=[filter_N])
+            for i, x in enumerate(features):
+            nearpy_engine.store_vector(x.tolist(), dict_feat[i])
+
+            # query
+            for i in range(features.shape[0]):
+                results = nearpy_engine.neighbours(features[i])
+                ann_idx = zip(*results)[1][1:]
+
+                img_id = dict_feat[i]
+                real_scores = scores[img_id]
+
+                r = np.zeros(len(ann_idx))
+                for i, idx in enumerate(ann_idx):
+                    try:
+                        r[i] = np.abs(real_scores[idx])
+                    except KeyError:
+                        r[i] = 0
+
+                query_score = dcg(r)
+
+
+
+
+
+                # comparison of results with scores!!
+                # use of DCG()
+                # results are sorted, sort scores
+
+                # to sort:
+                # sorted(dict1, key=dict1.get)
+                # or
+                # for w in sorted(d, key=d.get, reverse=True):
+                #       print w, d[w]
+
+            # 2 ways of sorting (corr or abs(corr))
+            # I will start with abs(corr) since it is best for dcg calc
+
+
+
+
+
+
+
+
+
+
+
+
 
             for n_bits in n_bits_pool:
                 for hash_counts in hash_counts_pool:
@@ -128,7 +183,7 @@ class Command(BaseCommand):
                         if metric == "euclidean":
                             distance = nearpy.distances.EuclideanDistance()
                         else:
-                            distance = nearpy.distances.EuclideanDistance()
+                            distance = nearpy.distances.CosineDistance()
 
                         # fit
                         hashes = []
