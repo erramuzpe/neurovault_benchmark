@@ -109,6 +109,10 @@ class Command(BaseCommand):
         metric_pool = ["euclidean","cosine"]
         z_score_pool = ["yes", "no"]
 
+        hash_counts = 10
+        n_bits = 6
+        distance = nearpy.distances.EuclideanDistance()
+
         for resample_dim in resample_dim_pool:
             features, dict_feat = createFeatures(subjects, resample_dim)
             # LOCALHOST!!!
@@ -138,13 +142,14 @@ class Command(BaseCommand):
                 real_scores = scores[img_id]
 
                 r = np.zeros(len(ann_idx))
-                for i, idx in enumerate(ann_idx):
+                for j, idx in enumerate(ann_idx):
                     try:
-                        r[i] = np.abs(real_scores[idx])
+                        r[j] = np.abs(real_scores[idx])
                     except KeyError:
-                        r[i] = 0
+                        r[j] = 0
 
                 query_score[i] = dcg(r)
+
 
             print "DCG mean score for ", resample_dim, " : ",  np.mean(query_score)
 
