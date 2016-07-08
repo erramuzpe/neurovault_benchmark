@@ -115,9 +115,7 @@ class Command(BaseCommand):
             dict_feat = pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat_localhost.p',"rb" ))
             features = features[:100, :]
 
-
             scores = get_neurovault_scores(100, dict_feat)
-
 
             hashes = []
             for k in xrange(hash_counts):
@@ -130,6 +128,7 @@ class Command(BaseCommand):
             nearpy_engine.store_vector(x.tolist(), dict_feat[i])
 
             # query
+            query_score = np.zeros(features.shape[0])
             for i in range(features.shape[0]):
                 results = nearpy_engine.neighbours(features[i])
                 ann_idx = zip(*results)[1][1:]
@@ -144,7 +143,9 @@ class Command(BaseCommand):
                     except KeyError:
                         r[i] = 0
 
-                query_score = dcg(r)
+                query_score[i] = dcg(r)
+
+            print "DCG mean score for ", resample_dim, " : ",  np.mean(query_score)
 
 
 
