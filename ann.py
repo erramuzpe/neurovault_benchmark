@@ -88,7 +88,7 @@ def get_neurovault_scores(subjects, dict_feat):
         scores = {}
         for value in dict_feat.itervalues():
             #url = 'http://www.neurovault.com/images/'+ str(value) +'/find_similar/json'
-            url = 'http://127.0.0.1/images/3/find_similar/json'
+            url = 'http://127.0.0.1/images/'+ str(value) +'/find_similar/json'
             resp = requests.get(url=url)
             data = json.loads(resp.text)
             # create a dict of dicts
