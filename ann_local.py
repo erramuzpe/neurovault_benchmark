@@ -104,14 +104,19 @@ class Command(BaseCommand):
 
         import nearpy, nearpy.hashes, nearpy.distances
 
-        resample_dim_pool = [[4,4,4],[6,6,6],[8,8,8],[10,10,10],[12,12,12],[14,14,14],[16,16,16]]
+        resample_dim_pool = [[16,16,16]]
         subjects = 940
-        n_bits_pool = [2, 4, 6, 8, 10]
-        hash_counts_pool = [2, 5, 10, 15, 20]
+        n_bits_pool = [3, 4, 5, 6, 8]
+        hash_counts_pool = [60,70,80]
         metric_pool = ["euclidean","cosine"]
         z_score_pool = ["yes", "no"]
 
         for resample_dim in resample_dim_pool:
+            features, dict_feat = createFeatures(subjects, resample_dim)
+            dict_feat = pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat_localhost.p', "rb"))
+            features = features[:250, :]
+            scores = get_neurovault_scores(250, dict_feat)
+
             for n_bits in n_bits_pool:
                 for hash_counts in hash_counts_pool:
                     for metric in metric_pool:
@@ -121,13 +126,6 @@ class Command(BaseCommand):
                                 distance = nearpy.distances.EuclideanDistance()
                             else:
                                 distance = nearpy.distances.CosineDistance()
-
-                            features, dict_feat = createFeatures(subjects, resample_dim)
-                            # LOCALHOST!!!
-                            dict_feat = pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat_localhost.p',"rb" ))
-                            features = features[:100, :]
-
-                            scores = get_neurovault_scores(100, dict_feat)
 
                             hashes = []
                             for k in xrange(hash_counts):
@@ -150,7 +148,10 @@ class Command(BaseCommand):
                             query_score = np.zeros(features.shape[0])
                             for i in range(features.shape[0]):
                                 results = nearpy_engine.neighbours(features[i])
-                                ann_idx = zip(*results)[1][1:]
+                                try:
+                                    ann_idx = zip(*results)[1][1:]
+                                except:
+                                    print "exception", i
 
                                 img_id = dict_feat[i]
                                 real_scores = scores[img_id]
@@ -167,8 +168,12 @@ class Command(BaseCommand):
                             print "DCG mean score for [r_dim:",resample_dim,",n_bit:",n_bits,",hsh_c:",hash_counts,\
                                 ",met:", metric,",z_sc:", z_score, "] =",np.mean(query_score)
 
+                            text_file = open("/code/neurovault/apps/statmaps/tests/DGC_scores3.txt", "a")
+                            print >> text_file, "DCG mean score for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
+                                ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score)
+                            text_file.close()
 
-
+                            del nearpy_engine, hashes
 
 
 
