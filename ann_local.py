@@ -104,12 +104,12 @@ class Command(BaseCommand):
 
         import nearpy, nearpy.hashes, nearpy.distances
 
-        resample_dim_pool = [[16,16,16]]
+        resample_dim_pool = [[8,8,8]]
         subjects = 940
-        n_bits_pool = [3, 4, 5, 6, 8]
-        hash_counts_pool = [60,70,80]
-        metric_pool = ["euclidean","cosine"]
-        z_score_pool = ["yes", "no"]
+        n_bits_pool = [11]
+        hash_counts_pool = [15]
+        metric_pool = ["euclidean"]
+        z_score_pool = ["no"]
 
         for resample_dim in resample_dim_pool:
             features, dict_feat = createFeatures(subjects, resample_dim)
@@ -146,6 +146,8 @@ class Command(BaseCommand):
 
                             # query
                             query_score = np.zeros(features.shape[0])
+                            max_query_score = np.zeros(features.shape[0])
+                            size_of_r = np.zeros(features.shape[0])
                             for i in range(features.shape[0]):
                                 results = nearpy_engine.neighbours(features[i])
                                 try:
@@ -159,18 +161,24 @@ class Command(BaseCommand):
                                 r = np.zeros(len(ann_idx))
                                 for j, idx in enumerate(ann_idx):
                                     try:
-                                        r[j] = np.abs(real_scores[idx])
+                                        r[j] = (real_scores[idx])
                                     except KeyError:
                                         r[j] = 0
 
+                                sorted_r = np.sort(r)[::-1]
                                 query_score[i] = dcg(r)
+                                max_query_score[i] = dcg(sorted_r)
+                                size_of_r[i] = r.shape[0]
 
                             print "DCG mean score for [r_dim:",resample_dim,",n_bit:",n_bits,",hsh_c:",hash_counts,\
                                 ",met:", metric,",z_sc:", z_score, "] =",np.mean(query_score)
 
-                            text_file = open("/code/neurovault/apps/statmaps/tests/DGC_scores3.txt", "a")
+                            print "DCG error score for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
+                                ",met:", metric, ",z_sc:", z_score, "] =", np.mean(max_query_score) - np.mean(query_score)
+
+                            text_file = open("/code/neurovault/apps/statmaps/tests/DGC_scores_error.txt", "a")
                             print >> text_file, "DCG mean score for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
-                                ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score)
+                                ",met:", metric, ",z_sc:", z_score, "] =", np.mean(max_query_score) - np.mean(query_score)
                             text_file.close()
 
                             del nearpy_engine, hashes
