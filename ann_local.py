@@ -7,6 +7,7 @@ from neurovault.apps.statmaps.utils import get_similar_images
 
 import os, scipy, pickle
 import numpy as np
+from scipy import stats
 
 
 def createFeatures(subjects=None, resample_dim=[4, 4, 4]):
@@ -110,67 +111,61 @@ class Command(BaseCommand):
         metric_pool = ["euclidean","cosine"]
         z_score_pool = ["yes", "no"]
 
-        hash_counts = 10
-        n_bits = 6
-        distance = nearpy.distances.EuclideanDistance()
-
         for resample_dim in resample_dim_pool:
-            features, dict_feat = createFeatures(subjects, resample_dim)
-            # LOCALHOST!!!
-            dict_feat = pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat_localhost.p',"rb" ))
-            features = features[:100, :]
+            for n_bits in n_bits_pool:
+                for hash_counts in hash_counts_pool:
+                    for metric in metric_pool:
+                        for z_score in z_score_pool:
 
-            scores = get_neurovault_scores(100, dict_feat)
+                            if metric == "euclidean":
+                                distance = nearpy.distances.EuclideanDistance()
+                            else:
+                                distance = nearpy.distances.CosineDistance()
 
-            hashes = []
-            for k in xrange(hash_counts):
-                nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
-                hashes.append(nearpy_rbp)
+                            features, dict_feat = createFeatures(subjects, resample_dim)
+                            # LOCALHOST!!!
+                            dict_feat = pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat_localhost.p',"rb" ))
+                            features = features[:100, :]
 
-            filter_N = nearpy.filters.NearestFilter(100)
+                            scores = get_neurovault_scores(100, dict_feat)
 
-            nearpy_engine = nearpy.Engine(features.shape[1], lshashes=hashes, distance=distance, vector_filters=[filter_N])
-            for i, x in enumerate(features):
-                nearpy_engine.store_vector(x.tolist(), dict_feat[i])
+                            hashes = []
+                            for k in xrange(hash_counts):
+                                nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
+                                hashes.append(nearpy_rbp)
 
-            # query
-            query_score = np.zeros(features.shape[0])
-            for i in range(features.shape[0]):
-                results = nearpy_engine.neighbours(features[i])
-                ann_idx = zip(*results)[1][1:]
+                            filter_N = nearpy.filters.NearestFilter(100)
 
-                img_id = dict_feat[i]
-                real_scores = scores[img_id]
+                            nearpy_engine = nearpy.Engine(features.shape[1], lshashes=hashes, distance=distance, vector_filters=[filter_N])
 
-                r = np.zeros(len(ann_idx))
-                for j, idx in enumerate(ann_idx):
-                    try:
-                        r[j] = np.abs(real_scores[idx])
-                    except KeyError:
-                        r[j] = 0
-
-                query_score[i] = dcg(r)
+                            if z_score == "yes":
+                                for i, x in enumerate(features):
+                                    nearpy_engine.store_vector(stats.zscore(x).tolist(), dict_feat[i])
+                            else:
+                                for i, x in enumerate(features):
+                                    nearpy_engine.store_vector(x.tolist(), dict_feat[i])
 
 
-            print "DCG mean score for ", resample_dim, " : ",  np.mean(query_score)
+                            # query
+                            query_score = np.zeros(features.shape[0])
+                            for i in range(features.shape[0]):
+                                results = nearpy_engine.neighbours(features[i])
+                                ann_idx = zip(*results)[1][1:]
 
+                                img_id = dict_feat[i]
+                                real_scores = scores[img_id]
 
+                                r = np.zeros(len(ann_idx))
+                                for j, idx in enumerate(ann_idx):
+                                    try:
+                                        r[j] = np.abs(real_scores[idx])
+                                    except KeyError:
+                                        r[j] = 0
 
+                                query_score[i] = dcg(r)
 
-
-                # comparison of results with scores!!
-                # use of DCG()
-                # results are sorted, sort scores
-
-                # to sort:
-                # sorted(dict1, key=dict1.get)
-                # or
-                # for w in sorted(d, key=d.get, reverse=True):
-                #       print w, d[w]
-
-            # 2 ways of sorting (corr or abs(corr))
-            # I will start with abs(corr) since it is best for dcg calc
-
+                            print "DCG mean score for [r_dim:",resample_dim,",n_bit:",n_bits,",hsh_c:",hash_counts,\
+                                ",met:", metric,",z_sc:", z_score, "] =",np.mean(query_score)
 
 
 
@@ -178,11 +173,6 @@ class Command(BaseCommand):
 
 
 
-
-#
-#
-#
-#
 #             for n_bits in n_bits_pool:
 #                 for hash_counts in hash_counts_pool:
 #                     for metric in metric_pool:
