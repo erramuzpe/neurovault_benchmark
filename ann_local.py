@@ -104,12 +104,12 @@ class Command(BaseCommand):
 
         import nearpy, nearpy.hashes, nearpy.distances
 
-        resample_dim_pool = [[8,8,8]]
+        resample_dim_pool = [[8,8,8], [16,16,16]]
         subjects = 940
-        n_bits_pool = [11]
-        hash_counts_pool = [15]
-        metric_pool = ["euclidean"]
-        z_score_pool = ["no"]
+        n_bits_pool = [5,7]
+        hash_counts_pool = [40]
+        metric_pool = ["euclidean", "cosine", "manhattan"]
+        z_score_pool = ["no","yes"]
 
         for resample_dim in resample_dim_pool:
             features, dict_feat = createFeatures(subjects, resample_dim)
@@ -170,15 +170,14 @@ class Command(BaseCommand):
                                 max_query_score[i] = dcg(sorted_r)
                                 size_of_r[i] = r.shape[0]
 
-                            print "DCG mean score for [r_dim:",resample_dim,",n_bit:",n_bits,",hsh_c:",hash_counts,\
-                                ",met:", metric,",z_sc:", z_score, "] =",np.mean(query_score)
-
                             print "DCG error score for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
-                                ",met:", metric, ",z_sc:", z_score, "] =", np.mean(max_query_score) - np.mean(query_score)
+                                ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
+                                np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
 
                             text_file = open("/code/neurovault/apps/statmaps/tests/DGC_scores_error.txt", "a")
-                            print >> text_file, "DCG mean score for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
-                                ",met:", metric, ",z_sc:", z_score, "] =", np.mean(max_query_score) - np.mean(query_score)
+                            print >> text_file, "DCG score/error/size for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
+                                ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
+                                np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
                             text_file.close()
 
                             del nearpy_engine, hashes
