@@ -104,12 +104,12 @@ class Command(BaseCommand):
 
         import nearpy, nearpy.hashes, nearpy.distances
 
-        resample_dim_pool = [[8,8,8], [16,16,16]]
+        resample_dim_pool = [[16,16,16]]
         subjects = 940
-        n_bits_pool = [5,7]
-        hash_counts_pool = [40]
-        metric_pool = ["euclidean", "cosine", "manhattan"]
-        z_score_pool = ["no","yes"]
+        n_bits_pool = [5,7,9,11,13,15]
+        hash_counts_pool = [10,40,60,100]
+        metric_pool = ["euclidean"]
+        z_score_pool = ["no"]
 
         for resample_dim in resample_dim_pool:
             features, dict_feat = createFeatures(subjects, resample_dim)
@@ -174,11 +174,11 @@ class Command(BaseCommand):
                                 ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
                                 np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
 
-                            text_file = open("/code/neurovault/apps/statmaps/tests/DGC_scores_error.txt", "a")
-                            print >> text_file, "DCG score/error/size for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
-                                ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
-                                np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
-                            text_file.close()
+                            # text_file = open("/code/neurovault/apps/statmaps/tests/DCG_scores_error.txt", "a")
+                            # print >> text_file, "DCG score/error/size for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
+                            #     ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
+                            #     np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
+                            # text_file.close()
 
                             del nearpy_engine, hashes
 
