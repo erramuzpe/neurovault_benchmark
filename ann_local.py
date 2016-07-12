@@ -114,8 +114,8 @@ class Command(BaseCommand):
         for resample_dim in resample_dim_pool:
             features, dict_feat = createFeatures(subjects, resample_dim)
             dict_feat = pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat_localhost.p', "rb"))
-            features = features[:250, :]
-            scores = get_neurovault_scores(250, dict_feat)
+            features = features[:940, :]
+            scores = get_neurovault_scores(940, dict_feat)
 
             for n_bits in n_bits_pool:
                 for hash_counts in hash_counts_pool:
