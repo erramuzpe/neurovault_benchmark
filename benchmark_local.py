@@ -55,6 +55,6 @@ class Command(BaseCommand):
                     ignore_file_warning=True)
             dict_feat[i] = image.pk
             print i
-            if i == 249:
+            if i == 939:
                 pickle.dump(dict_feat, open('/code/neurovault/apps/statmaps/tests/dict_feat_localhost.p', "wb"))
                 break
