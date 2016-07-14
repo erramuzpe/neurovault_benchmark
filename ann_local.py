@@ -174,11 +174,11 @@ class Command(BaseCommand):
                                 ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
                                 np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
 
-                            # text_file = open("/code/neurovault/apps/statmaps/tests/DCG_scores_error.txt", "a")
-                            # print >> text_file, "DCG score/error/size for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
-                            #     ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
-                            #     np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
-                            # text_file.close()
+                            text_file = open("/code/neurovault/apps/statmaps/tests/DCG_scores_error.txt", "a")
+                            print >> text_file, "DCG score/error/size for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
+                                ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
+                                np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
+                            text_file.close()
 
                             del nearpy_engine, hashes
 
