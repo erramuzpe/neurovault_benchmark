@@ -165,20 +165,20 @@ class Command(BaseCommand):
                                     except KeyError:
                                         r[j] = 0
 
-                                sorted_r = np.sort(r)[::-1]
+                                max_score = np.sort(np.abs(real_scores.values()))[::-1][:99]
                                 query_score[i] = dcg(r)
-                                max_query_score[i] = dcg(sorted_r)
+                                max_query_score[i] = dcg(max_score)
                                 size_of_r[i] = r.shape[0]
 
                             print "DCG error score for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
                                 ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
                                 np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
 
-                            text_file = open("/code/neurovault/apps/statmaps/tests/DCG_scores_error.txt", "a")
-                            print >> text_file, "DCG score/error/size for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
-                                ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
-                                np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
-                            text_file.close()
+                            # text_file = open("/code/neurovault/apps/statmaps/tests/DCG_scores_error.txt", "a")
+                            # print >> text_file, "DCG score/error/size for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
+                            #     ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
+                            #     np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
+                            # text_file.close()
 
                             del nearpy_engine, hashes
 
