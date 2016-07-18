@@ -286,7 +286,7 @@ else:
 engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(),lshashes=lshash, storage=redis_storage, vector_filters=[nearpy.filters.NearestFilter(100)])
 
 # Do some stuff like indexing or querying with the engine...
-for i, x in enumerate(features[:20,:]):
+for i, x in enumerate(features[:40,:]):
     # t = Timer()
     # with t:
     engine.store_vector(x.tolist(), dict_feat[i])
@@ -302,6 +302,12 @@ for k in xrange(hash_counts):
     redis_storage.store_hash_configuration(lshash[k])
 #this can be loaded whenever you want, and the only thing that has to be done is to recreate the engine with the lshashes.
 # this will automatically load the whole hash structure allowing immediate queries.
+
+
+
+# other option is to save the engine, but lshashes will be lost
+pickle.dump(engine,open('engine.p','wb'))
+engine = pickle.load(open('engine.p','rb'))
 
 #
 #
