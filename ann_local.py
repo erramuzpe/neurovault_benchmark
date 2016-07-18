@@ -182,101 +182,9 @@ class Command(BaseCommand):
 
                             del nearpy_engine, hashes
 
+#results are the N-nearest neighbours! [vector, data_idx, distance]. (for now, distance is NaN)
 
 
-
-#             for n_bits in n_bits_pool:
-#                 for hash_counts in hash_counts_pool:
-#                     for metric in metric_pool:
-#                         #for z_score in z_score_pool:
-#
-#                         if metric == "euclidean":
-#                             distance = nearpy.distances.EuclideanDistance()
-#                         else:
-#                             distance = nearpy.distances.CosineDistance()
-#
-#                         # fit
-#                         hashes = []
-#                         for k in xrange(hash_counts):
-#                             nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
-#                             hashes.append(nearpy_rbp)
-#                         nearpy_engine = nearpy.Engine(features.shape[1], lshashes=hashes, distance=distance)
-#                         for i, x in enumerate(features):
-#                             nearpy_engine.store_vector(x.tolist(), dict_feat[i])
-#
-#                         #query
-#                         for i in range(features.shape[0]):
-#                             results = nearpy_engine.neighbours(features[i])
-#                             #print 'queried', dict_feat[i], 'results', zip(*results)[1]
-#
-#                         # comparison of results with scores!!
-#                         # use of DCG()
-#                         # results are sorted, sort scores
-#
-#                             # to sort:
-#                             # sorted(dict1, key=dict1.get)
-#                             # or
-#                             # for w in sorted(d, key=d.get, reverse=True):
-#                             #       print w, d[w]
-#
-#                         # 2 ways of sorting (corr or abs(corr))
-#                         # I will start with abs(corr) since it is best for dcg calc
-#
-#
-#
-#
-#
-#
-#
-# #results are the N-nearest neighbours! [vector, data_idx, distance]. (for now, distance is NaN)
-#
-#
-# from django.core.management.base import BaseCommand, CommandError
-# from neurovault.apps.statmaps.tests.utils import clearDB
-# from neurovault.apps.statmaps.models import Comparison, Similarity, User, Collection, Image
-# from neurovault.apps.statmaps.tests.utils import save_statmap_form
-# from neurovault.apps.statmaps.tasks import save_resampled_transformation_single
-#
-# import os, scipy, pickle
-# import numpy as np
-#
-# features, dict_feat = np.load('/code/neurovault/apps/statmaps/tests/features_940_16_16_16.npy').T, \
-#                       pickle.load(open('/code/neurovault/apps/statmaps/tests/dict_feat.p', "rb"))
-# import timeit
-# ## NEARPY TEST
-# n_bits = 5
-# hash_counts = 20
-# metric = "euclidean"
-# name = 'NearPy(n_bits=%d, hash_counts=%d)' % (n_bits, hash_counts)
-# # fiting
-# import nearpy, nearpy.hashes, nearpy.distances
-# hashes = []
-# # doesn't seem like the NearPy code is using the metric??
-# for k in xrange(hash_counts):
-#     nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
-#     hashes.append(nearpy_rbp)
-#
-# filter_N = nearpy.filters.NearestFilter(100)
-#
-# nearpy_engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(),
-#                               lshashes=hashes,vector_filters=[filter_N])
-# #indexing
-# t = Timer()
-# with t:
-#     for i, x in enumerate(features):
-#         nearpy_engine.store_vector(x.tolist(), dict_feat[i])
-# # querying
-# for i in range(features.shape[0]):
-#     t = Timer()
-#     with t:
-#         results = nearpy_engine.neighbours(features[i])
-#     print 'queried', dict_feat[i], 'results', zip(*results)[1]
-#
-#
-#
-#
-#
-#
 # #######
 # # PCA #
 # #######
@@ -327,89 +235,74 @@ class Command(BaseCommand):
 #     with t:
 #         results = nearpy_engine.neighbours(pca.transform(features[i, :]).T)
 #     print 'queried', dict_feat[i], 'results', zip(*results)[1]
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-# # Create redis storage adapter
-# import redis
-# import nearpy, nearpy.hashes, nearpy.distances
-#
-# n_bits = 5
-# hash_counts = 20
-#
-# redis_object = redis.Redis(host='redis', port=6379, db=0)
-# redis_storage = nearpy.storage.RedisStorage(redis_object)
-#
-# # Get hash config from redis
-# config = redis_storage.load_hash_configuration('rbp_0')
-#
-# if config is None:
-#     # Config is not existing, create hash from scratch, with 10 projections
-#     lshash = []
-#     # doesn't seem like the NearPy code is using the metric??
-#     for k in xrange(hash_counts):
-#         nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
-#         lshash.append(nearpy_rbp)
-# else:
-#     lshash = []
-#     for k in xrange(hash_counts):
-#         config = redis_storage.load_hash_configuration('rbp_%d' % k)
-#         # Config is existing, create hash with None parameters
-#         # Apply configuration loaded from redis
-#         lshash_aux = nearpy.hashes.RandomBinaryProjections(None, None)
-#         lshash_aux.apply_config(config)
-#         lshash.append(lshash_aux)
-#
-# # Create engine for feature space of 100 dimensions and use our hash.
-# # This will set the dimension of the lshash only the first time, not when
-# # using the configuration loaded from redis. Use redis storage to store
-# # buckets.
-# engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(),lshashes=lshash, storage=redis_storage, vector_filters=[nearpy.filters.NearestFilter(100)])
-#
-# # Do some stuff like indexing or querying with the engine...
-# for i, x in enumerate(features[:200,:]):
-#     t = Timer()
-#     with t:
-#         engine.store_vector(x.tolist(), dict_feat[i])
-#
-# for i in range(10):
-#     t = Timer()
-#     with t:
-#         results = engine.neighbours(features[i])
-#     print 'queried', dict_feat[i], 'results', zip(*results)[1]
-#
-# # Finally store hash configuration in redis for later use
-# for k in xrange(hash_counts):
-#     redis_storage.store_hash_configuration(lshash[k])
-#
-#
+
+
+
+
+
+
+
+
+
+
+#########
+# REDIS #
+#########
+
+# Create redis storage adapter
+import redis
+import nearpy
+
+n_bits = 5
+hash_counts = 20
+
+redis_object = redis.Redis(host='redis', port=6379, db=0)
+redis_storage = nearpy.storage.RedisStorage(redis_object)
+
+# Get hash config from redis
+config = redis_storage.load_hash_configuration('rbp_0')
+
+if config is None:
+    # Config is not existing, create hash from scratch, with 10 projections
+    lshash = []
+    # doesn't seem like the NearPy code is using the metric??
+    for k in xrange(hash_counts):
+        nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
+        lshash.append(nearpy_rbp)
+else:
+    lshash = []
+    for k in xrange(hash_counts):
+        config = redis_storage.load_hash_configuration('rbp_%d' % k)
+        # Config is existing, create hash with None parameters
+        # Apply configuration loaded from redis
+        lshash_aux = nearpy.hashes.RandomBinaryProjections(None, None)
+        lshash_aux.apply_config(config)
+        lshash.append(lshash_aux)
+
+# Create engine for feature space of 100 dimensions and use our hash.
+# This will set the dimension of the lshash only the first time, not when
+# using the configuration loaded from redis. Use redis storage to store
+# buckets.
+engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(),lshashes=lshash, storage=redis_storage, vector_filters=[nearpy.filters.NearestFilter(100)])
+
+# Do some stuff like indexing or querying with the engine...
+for i, x in enumerate(features[:20,:]):
+    # t = Timer()
+    # with t:
+    engine.store_vector(x.tolist(), dict_feat[i])
+
+for i in range(10):
+    # t = Timer()
+    # with t:
+    results = engine.neighbours(features[i])
+    print 'queried', dict_feat[i], 'results', zip(*results)[1]
+
+# Finally store hash configuration in redis for later use
+for k in xrange(hash_counts):
+    redis_storage.store_hash_configuration(lshash[k])
+#this can be loaded whenever you want, and the only thing that has to be done is to recreate the engine with the lshashes.
+# this will automatically load the whole hash structure allowing immediate queries.
+
 #
 #
 #
