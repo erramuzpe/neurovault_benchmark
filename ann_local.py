@@ -104,12 +104,12 @@ class Command(BaseCommand):
 
         import nearpy, nearpy.hashes, nearpy.distances
 
-        resample_dim_pool = [[16,16,16]]
+        resample_dim_pool = [[4, 4, 4],[8, 8, 8],[16,16,16]]
         subjects = 940
-        n_bits_pool = [5,7,9,11,13,15]
-        hash_counts_pool = [10,40,60,100]
-        metric_pool = ["euclidean"]
-        z_score_pool = ["no"]
+        n_bits_pool = [5,11,15]
+        hash_counts_pool = [10,40,60]
+        metric_pool = ["euclidean", "cosine"]
+        z_score_pool = ["yes","no"]
 
         for resample_dim in resample_dim_pool:
             features, dict_feat = createFeatures(subjects, resample_dim)
@@ -174,11 +174,11 @@ class Command(BaseCommand):
                                 ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
                                 np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
 
-                            # text_file = open("/code/neurovault/apps/statmaps/tests/DCG_scores_error.txt", "a")
-                            # print >> text_file, "DCG score/error/size for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
-                            #     ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
-                            #     np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
-                            # text_file.close()
+                            text_file = open("/code/neurovault/apps/statmaps/tests/DCG_scores_19_07.txt", "a")
+                            print >> text_file, "DCG score/error/size for [r_dim:", resample_dim, ",n_bit:", n_bits, ",hsh_c:", hash_counts, \
+                                ",met:", metric, ",z_sc:", z_score, "] =", np.mean(query_score) ,\
+                                np.mean(max_query_score) - np.mean(query_score) , np.mean(size_of_r)
+                            text_file.close()
 
                             del nearpy_engine, hashes
 
@@ -243,76 +243,86 @@ class Command(BaseCommand):
 
 
 
-
-
-#########
-# REDIS #
-#########
-
-# Create redis storage adapter
-import redis
-import nearpy
-
-n_bits = 5
-hash_counts = 20
-
-redis_object = redis.Redis(host='redis', port=6379, db=0)
-redis_storage = nearpy.storage.RedisStorage(redis_object)
-
-# Get hash config from redis
-config = redis_storage.load_hash_configuration('rbp_0')
-
-if config is None:
-    # Config is not existing, create hash from scratch, with 10 projections
-    lshash = []
-    # doesn't seem like the NearPy code is using the metric??
-    for k in xrange(hash_counts):
-        nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
-        lshash.append(nearpy_rbp)
-else:
-    lshash = []
-    for k in xrange(hash_counts):
-        config = redis_storage.load_hash_configuration('rbp_%d' % k)
-        # Config is existing, create hash with None parameters
-        # Apply configuration loaded from redis
-        lshash_aux = nearpy.hashes.RandomBinaryProjections(None, None)
-        lshash_aux.apply_config(config)
-        lshash.append(lshash_aux)
-
-# Create engine for feature space of 100 dimensions and use our hash.
-# This will set the dimension of the lshash only the first time, not when
-# using the configuration loaded from redis. Use redis storage to store
-# buckets.
-engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(),lshashes=lshash, storage=redis_storage, vector_filters=[nearpy.filters.NearestFilter(100)])
-
-# Do some stuff like indexing or querying with the engine...
-for i, x in enumerate(features[:40,:]):
-    # t = Timer()
-    # with t:
-    engine.store_vector(x.tolist(), dict_feat[i])
-
-for i in range(10):
-    # t = Timer()
-    # with t:
-    results = engine.neighbours(features[i])
-    print 'queried', dict_feat[i], 'results', zip(*results)[1]
-
-# Finally store hash configuration in redis for later use
-for k in xrange(hash_counts):
-    redis_storage.store_hash_configuration(lshash[k])
-#this can be loaded whenever you want, and the only thing that has to be done is to recreate the engine with the lshashes.
-# this will automatically load the whole hash structure allowing immediate queries.
-
-
-
-# other option is to save the engine, but lshashes will be lost
-pickle.dump(engine,open('engine.p','wb'))
-engine = pickle.load(open('engine.p','rb'))
-
+#
+#
+# #########
+# # REDIS #
+# #########
+#
+# # Create redis storage adapter
+# import redis
+# import nearpy
+#
+# n_bits = 5
+# hash_counts = 20
+#
+# redis_object = redis.Redis(host='redis', port=6379, db=0)
+# redis_storage = nearpy.storage.RedisStorage(redis_object)
+#
+# # Get hash config from redis
+# config = redis_storage.load_hash_configuration('rbp_0')
+#
+# if config is None:
+#     # Config is not existing, create hash from scratch, with 10 projections
+#     lshash = []
+#     # doesn't seem like the NearPy code is using the metric??
+#     for k in xrange(hash_counts):
+#         nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
+#         lshash.append(nearpy_rbp)
+# else:
+#     lshash = []
+#     for k in xrange(hash_counts):
+#         config = redis_storage.load_hash_configuration('rbp_%d' % k)
+#         # Config is existing, create hash with None parameters
+#         # Apply configuration loaded from redis
+#         lshash_aux = nearpy.hashes.RandomBinaryProjections(None, None)
+#         lshash_aux.apply_config(config)
+#         lshash.append(lshash_aux)
+#
+# # Create engine for feature space of 100 dimensions and use our hash.
+# # This will set the dimension of the lshash only the first time, not when
+# # using the configuration loaded from redis. Use redis storage to store
+# # buckets.
+# engine = nearpy.Engine(features.shape[1], distance= nearpy.distances.EuclideanDistance(),lshashes=lshash, storage=redis_storage, vector_filters=[nearpy.filters.NearestFilter(100)])
+#
+# # Do some stuff like indexing or querying with the engine...
+# for i, x in enumerate(features[:40,:]):
+#     # t = Timer()
+#     # with t:
+#     engine.store_vector(x.tolist(), dict_feat[i])
+#
+# for i in range(10):
+#     # t = Timer()
+#     # with t:
+#     results = engine.neighbours(features[i])
+#     print 'queried', dict_feat[i], 'results', zip(*results)[1]
+#
+# # Finally store hash configuration in redis for later use
+# for k in xrange(hash_counts):
+#     redis_storage.store_hash_configuration(lshash[k])
+# #this can be loaded whenever you want, and the only thing that has to be done is to recreate the engine with the lshashes.
+# # this will automatically load the whole hash structure allowing immediate queries.
 #
 #
 #
-#
+# # other option is to save the engine, but lshashes will be lost
+# pickle.dump(engine,open('engine.p','wb'))
+# engine = pickle.load(open('engine.p','rb'))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #
 #
 # ## RPFOREST TEST
