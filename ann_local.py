@@ -104,12 +104,12 @@ class Command(BaseCommand):
 
         import nearpy, nearpy.hashes, nearpy.distances
 
-        resample_dim_pool = [[4, 4, 4],[8, 8, 8],[16,16,16]]
+        resample_dim_pool = [[16,16,16]]
         subjects = 940
-        n_bits_pool = [5,11,15]
-        hash_counts_pool = [10,40,60]
-        metric_pool = ["euclidean", "cosine"]
-        z_score_pool = ["yes","no"]
+        n_bits_pool = [5,7]
+        hash_counts_pool = [40]
+        metric_pool = ["euclidean"]
+        z_score_pool = ["no"]
 
         for resample_dim in resample_dim_pool:
             features, dict_feat = createFeatures(subjects, resample_dim)
