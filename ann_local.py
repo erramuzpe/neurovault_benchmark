@@ -161,7 +161,7 @@ class Command(BaseCommand):
                                 r = np.zeros(len(ann_idx))
                                 for j, idx in enumerate(ann_idx):
                                     try:
-                                        r[j] = (real_scores[idx])
+                                        r[j] = np.abs(real_scores[idx])
                                     except KeyError:
                                         r[j] = 0
 
