@@ -110,6 +110,7 @@ class Command(BaseCommand):
         hash_counts_pool = [40]
         metric_pool = ["euclidean"]
         z_score_pool = ["no"]
+        hash_type = "RBP" #or "PCA"
 
         for resample_dim in resample_dim_pool:
             features, dict_feat = createFeatures(subjects, resample_dim)
@@ -128,9 +129,17 @@ class Command(BaseCommand):
                                 distance = nearpy.distances.CosineDistance()
 
                             hashes = []
-                            for k in xrange(hash_counts):
-                                nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
-                                hashes.append(nearpy_rbp)
+
+                            if hash_type == "RBP":
+                                for k in xrange(hash_counts):
+                                    nearpy_rbp = nearpy.hashes.RandomBinaryProjections('rbp_%d' % k, n_bits)
+                                    hashes.append(nearpy_rbp)
+                            else:
+                                for k in xrange(hash_counts):
+                                    nearpy_rbp = nearpy.hashes.PCABinaryProjections('rbp_%d' % k, n_bits, features[:99,:].T)
+                                    hashes.append(nearpy_rbp)
+
+
 
                             filter_N = nearpy.filters.NearestFilter(100)
 
